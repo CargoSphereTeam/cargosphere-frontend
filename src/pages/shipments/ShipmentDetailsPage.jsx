@@ -1,23 +1,123 @@
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import {
+  getCargoDetailsByShipmentId,
+  getShipmentById,
+} from '../../api/shipmentApi.js';
 import ShipmentStatusBadge from '../../components/shipment/ShipmentStatusBadge.jsx';
 
-const SAMPLE_SHIPMENT = {
-  id: 8,
-  shipmentNumber: 'CS-20260721-31B016FE',
-  clientUserId: 1,
-  originLocation: 'Delhi',
-  destinationLocation: 'Hyderabad',
-  shipmentType: 'ROAD',
-  status: 'IN_TRANSIT',
-  expectedPickupDate: '2026-08-20',
-  expectedDeliveryDate: '2026-08-25',
-  createdAt: '2026-07-21T10:02:52Z',
-  updatedAt: '2026-07-21T10:14:26Z',
-};
+function formatDate(value) {
+  if (!value) {
+    return 'Not set';
+  }
+
+  const [year, month, day] = value.split('-').map(Number);
+
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'medium',
+  }).format(new Date(year, month - 1, day));
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return 'Not available';
+  }
+
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
+function formatCargoType(cargoType) {
+  if (!cargoType) {
+    return 'Not specified';
+  }
+
+  return cargoType.replaceAll('_', ' ');
+}
 
 function ShipmentDetailsPage() {
   const { shipmentId } = useParams();
-  const shipment = SAMPLE_SHIPMENT;
+
+  const [shipment, setShipment] = useState(null);
+  const [cargoDetails, setCargoDetails] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadShipmentDetails() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [shipmentData, cargoData] = await Promise.all([
+          getShipmentById(shipmentId),
+          getCargoDetailsByShipmentId(shipmentId),
+        ]);
+
+        if (isActive) {
+          setShipment(shipmentData);
+          setCargoDetails(
+            Array.isArray(cargoData) ? cargoData : [],
+          );
+        }
+      } catch (requestError) {
+        if (isActive) {
+          const errorMessage =
+            requestError.response?.data?.message ??
+            'Unable to load shipment details. Please try again.';
+
+          setError(errorMessage);
+        }
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadShipmentDetails();
+
+    return () => {
+      isActive = false;
+    };
+  }, [shipmentId]);
+
+  if (loading) {
+    return (
+      <main className="container py-5 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">
+            Loading shipment details...
+          </span>
+        </div>
+
+        <p className="text-secondary mt-3 mb-0">
+          Loading shipment details...
+        </p>
+      </main>
+    );
+  }
+
+  if (error || !shipment) {
+    return (
+      <main className="container py-4">
+        <Link
+          to="/shipments"
+          className="btn btn-link p-0 mb-3 text-decoration-none"
+        >
+          ← Back to Shipments
+        </Link>
+
+        <div className="alert alert-danger" role="alert">
+          {error || 'Shipment details are unavailable.'}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="container py-4">
@@ -32,7 +132,7 @@ function ShipmentDetailsPage() {
 
           <h1 className="h2 mb-1">Shipment Details</h1>
 
-          <p className="text-secondary">
+          <p className="text-secondary mb-0">
             {shipment.shipmentNumber}
           </p>
         </div>
@@ -54,7 +154,7 @@ function ShipmentDetailsPage() {
                     Shipment Number
                   </p>
 
-                  <p className="fw-semibold">
+                  <p className="fw-semibold mb-0">
                     {shipment.shipmentNumber}
                   </p>
                 </div>
@@ -64,7 +164,7 @@ function ShipmentDetailsPage() {
                     Client User ID
                   </p>
 
-                  <p className="fw-semibold">
+                  <p className="fw-semibold mb-0">
                     {shipment.clientUserId}
                   </p>
                 </div>
@@ -74,7 +174,7 @@ function ShipmentDetailsPage() {
                     Origin
                   </p>
 
-                  <p className="fw-semibold">
+                  <p className="fw-semibold mb-0">
                     {shipment.originLocation}
                   </p>
                 </div>
@@ -84,7 +184,7 @@ function ShipmentDetailsPage() {
                     Destination
                   </p>
 
-                  <p className="fw-semibold">
+                  <p className="fw-semibold mb-0">
                     {shipment.destinationLocation}
                   </p>
                 </div>
@@ -94,7 +194,7 @@ function ShipmentDetailsPage() {
                     Shipment Type
                   </p>
 
-                  <p className="fw-semibold">
+                  <p className="fw-semibold mb-0">
                     {shipment.shipmentType}
                   </p>
                 </div>
@@ -112,8 +212,8 @@ function ShipmentDetailsPage() {
                     Expected Pickup
                   </p>
 
-                  <p className="fw-semibold">
-                    {shipment.expectedPickupDate}
+                  <p className="fw-semibold mb-0">
+                    {formatDate(shipment.expectedPickupDate)}
                   </p>
                 </div>
 
@@ -122,8 +222,8 @@ function ShipmentDetailsPage() {
                     Expected Delivery
                   </p>
 
-                  <p className="fw-semibold">
-                    {shipment.expectedDeliveryDate}
+                  <p className="fw-semibold mb-0">
+                    {formatDate(shipment.expectedDeliveryDate)}
                   </p>
                 </div>
               </div>
@@ -142,11 +242,97 @@ function ShipmentDetailsPage() {
               </Link>
             </div>
 
-            <div className="card-body text-center py-5">
-              <p className="text-secondary mb-0">
-                Cargo details will appear here.
-              </p>
-            </div>
+            {cargoDetails.length === 0 ? (
+              <div className="card-body text-center py-5">
+                <p className="text-secondary mb-3">
+                  No cargo details have been added to this shipment.
+                </p>
+
+                <Link
+                  to={`/shipments/${shipmentId}/cargo`}
+                  className="btn btn-primary"
+                >
+                  Add Cargo Details
+                </Link>
+              </div>
+            ) : (
+              <div className="card-body">
+                <div className="d-flex flex-column gap-3">
+                  {cargoDetails.map((cargo) => (
+                    <div
+                      key={cargo.id}
+                      className="border rounded p-3"
+                    >
+                      <div className="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+                        <div>
+                          <h3 className="h6 mb-1">
+                            {cargo.cargoName}
+                          </h3>
+
+                          <p className="text-secondary small mb-0">
+                            {formatCargoType(cargo.cargoType)}
+                          </p>
+                        </div>
+
+                        <span className="badge text-bg-light align-self-start">
+                          Quantity: {cargo.quantity}
+                        </span>
+                      </div>
+
+                      {cargo.cargoDescription && (
+                        <p className="mb-3">
+                          {cargo.cargoDescription}
+                        </p>
+                      )}
+
+                      <div className="row g-3">
+                        <div className="col-6 col-md-3">
+                          <p className="text-secondary small mb-1">
+                            Weight
+                          </p>
+
+                          <p className="fw-semibold mb-0">
+                            {cargo.weightKg} kg
+                          </p>
+                        </div>
+
+                        <div className="col-6 col-md-3">
+                          <p className="text-secondary small mb-1">
+                            Volume
+                          </p>
+
+                          <p className="fw-semibold mb-0">
+                            {cargo.volumeCbm
+                              ? `${cargo.volumeCbm} CBM`
+                              : 'Not set'}
+                          </p>
+                        </div>
+
+                        <div className="col-6 col-md-3">
+                          <p className="text-secondary small mb-1">
+                            Fragile
+                          </p>
+
+                          <p className="fw-semibold mb-0">
+                            {cargo.fragile ? 'Yes' : 'No'}
+                          </p>
+                        </div>
+
+                        <div className="col-6 col-md-3">
+                          <p className="text-secondary small mb-1">
+                            Hazardous
+                          </p>
+
+                          <p className="fw-semibold mb-0">
+                            {cargo.hazardous ? 'Yes' : 'No'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -183,13 +369,17 @@ function ShipmentDetailsPage() {
                 Created At
               </p>
 
-              <p className="mb-3">{shipment.createdAt}</p>
+              <p className="mb-3">
+                {formatDateTime(shipment.createdAt)}
+              </p>
 
               <p className="text-secondary small mb-1">
                 Last Updated
               </p>
 
-              <p className="mb-0">{shipment.updatedAt}</p>
+              <p className="mb-0">
+                {formatDateTime(shipment.updatedAt)}
+              </p>
             </div>
           </div>
         </div>
