@@ -1,35 +1,66 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getAllShipments } from '../../api/shipmentApi.js';
 import ShipmentStatusBadge from '../../components/shipment/ShipmentStatusBadge.jsx';
 
-const SAMPLE_SHIPMENTS = [
-  {
-    id: 1,
-    shipmentNumber: 'CS-20260721-DEMO0001',
-    originLocation: 'Mumbai',
-    destinationLocation: 'Bengaluru',
-    shipmentType: 'ROAD',
-    status: 'CREATED',
-    expectedDeliveryDate: '2026-08-15',
-  },
-  {
-    id: 2,
-    shipmentNumber: 'CS-20260721-DEMO0002',
-    originLocation: 'Delhi',
-    destinationLocation: 'Hyderabad',
-    shipmentType: 'ROAD',
-    status: 'IN_TRANSIT',
-    expectedDeliveryDate: '2026-08-25',
-  },
-];
+function formatDate(value) {
+  if (!value) {
+    return 'Not set';
+  }
+
+  const [year, month, day] = value.split('-').map(Number);
+
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'medium',
+  }).format(new Date(year, month - 1, day));
+}
 
 function ShipmentListPage() {
+  const [shipments, setShipments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadShipments() {
+      try {
+        const shipmentData = await getAllShipments();
+
+        if (isActive) {
+          setShipments(
+            Array.isArray(shipmentData) ? shipmentData : [],
+          );
+        }
+      } catch (requestError) {
+        if (isActive) {
+          const errorMessage =
+            requestError.response?.data?.message ??
+            'Unable to load shipments. Please try again.';
+
+          setError(errorMessage);
+        }
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadShipments();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   return (
     <main className="container py-4">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
           <h1 className="h2 mb-1">Shipments</h1>
 
-          <p className="text-secondary">
+          <p className="text-secondary mb-0">
             View and manage CargoSphere shipments.
           </p>
         </div>
@@ -39,56 +70,100 @@ function ShipmentListPage() {
         </Link>
       </div>
 
-      <div className="card shadow-sm">
-        <div className="card-body p-0">
-          <div className="table-responsive">
-            <table className="table table-hover align-middle mb-0">
-              <thead className="table-light">
-                <tr>
-                  <th>Shipment Number</th>
-                  <th>Route</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Expected Delivery</th>
-                  <th className="text-end">Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {SAMPLE_SHIPMENTS.map((shipment) => (
-                  <tr key={shipment.id}>
-                    <td className="fw-semibold">
-                      {shipment.shipmentNumber}
-                    </td>
-
-                    <td>
-                      {shipment.originLocation}
-                      {' → '}
-                      {shipment.destinationLocation}
-                    </td>
-
-                    <td>{shipment.shipmentType}</td>
-
-                    <td>
-                      <ShipmentStatusBadge status={shipment.status} />
-                    </td>
-
-                    <td>{shipment.expectedDeliveryDate}</td>
-
-                    <td className="text-end">
-                      <Link
-                        to={`/shipments/${shipment.id}`}
-                        className="btn btn-sm btn-outline-primary"
-                      >
-                        View Details
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {error && (
+        <div className="alert alert-danger" role="alert">
+          {error}
         </div>
+      )}
+
+      <div className="card shadow-sm">
+        {loading ? (
+          <div className="card-body text-center py-5">
+            <div
+              className="spinner-border text-primary"
+              role="status"
+            >
+              <span className="visually-hidden">
+                Loading shipments...
+              </span>
+            </div>
+
+            <p className="text-secondary mt-3 mb-0">
+              Loading shipments...
+            </p>
+          </div>
+        ) : shipments.length === 0 && !error ? (
+          <div className="card-body text-center py-5">
+            <h2 className="h5">No shipments found</h2>
+
+            <p className="text-secondary mb-3">
+              Create the first shipment to begin tracking cargo.
+            </p>
+
+            <Link
+              to="/shipments/new"
+              className="btn btn-primary"
+            >
+              Create Shipment
+            </Link>
+          </div>
+        ) : (
+          <div className="card-body p-0">
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th>Shipment Number</th>
+                    <th>Route</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Expected Delivery</th>
+                    <th className="text-end">Action</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {shipments.map((shipment) => (
+                    <tr key={shipment.id}>
+                      <td className="fw-semibold">
+                        {shipment.shipmentNumber}
+                      </td>
+
+                      <td>
+                        {shipment.originLocation}
+                        {' → '}
+                        {shipment.destinationLocation}
+                      </td>
+
+                      <td>{shipment.shipmentType}</td>
+
+                      <td>
+                        <ShipmentStatusBadge
+                          status={shipment.status}
+                        />
+                      </td>
+
+                      <td>
+                        {formatDate(
+                          shipment.expectedDeliveryDate,
+                        )}
+                      </td>
+
+                      <td className="text-end">
+                        <Link
+                          to={`/shipments/${shipment.id}`}
+                          className="btn btn-sm btn-outline-primary"
+                        >
+                          View Details
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
