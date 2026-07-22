@@ -1,10 +1,73 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createShipment } from '../../api/shipmentApi.js';
+
+const INITIAL_FORM_DATA = {
+  clientUserId: '',
+  shipmentType: '',
+  originLocation: '',
+  destinationLocation: '',
+  expectedPickupDate: '',
+  expectedDeliveryDate: '',
+};
 
 function CreateShipmentPage() {
   const navigate = useNavigate();
 
-  const handleSubmit = (event) => {
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData((currentData) => ({
+      ...currentData,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    setError('');
+
+    if (
+      formData.expectedPickupDate &&
+      formData.expectedDeliveryDate &&
+      formData.expectedDeliveryDate < formData.expectedPickupDate
+    ) {
+      setError(
+        'Expected delivery date cannot be before the pickup date.',
+      );
+      return;
+    }
+
+    const shipmentData = {
+      clientUserId: Number(formData.clientUserId),
+      originLocation: formData.originLocation.trim(),
+      destinationLocation: formData.destinationLocation.trim(),
+      shipmentType: formData.shipmentType,
+      expectedPickupDate: formData.expectedPickupDate || null,
+      expectedDeliveryDate: formData.expectedDeliveryDate || null,
+    };
+
+    try {
+      setSubmitting(true);
+
+      const createdShipment = await createShipment(shipmentData);
+
+      navigate(`/shipments/${createdShipment.id}`);
+    } catch (requestError) {
+      const errorMessage =
+        requestError.response?.data?.message ??
+        'Unable to create the shipment. Please check the details and try again.';
+
+      setError(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -16,6 +79,12 @@ function CreateShipmentPage() {
           Enter the shipment route, transport type, and expected dates.
         </p>
       </div>
+
+      {error && (
+        <div className="alert alert-danger" role="alert">
+          {error}
+        </div>
+      )}
 
       <div className="card shadow-sm">
         <div className="card-body p-4">
@@ -33,6 +102,8 @@ function CreateShipmentPage() {
                   min="1"
                   className="form-control"
                   placeholder="Enter client user ID"
+                  value={formData.clientUserId}
+                  onChange={handleChange}
                   required
                 />
               </div>
@@ -46,7 +117,8 @@ function CreateShipmentPage() {
                   id="shipmentType"
                   name="shipmentType"
                   className="form-select"
-                  defaultValue=""
+                  value={formData.shipmentType}
+                  onChange={handleChange}
                   required
                 >
                   <option value="" disabled>
@@ -69,14 +141,20 @@ function CreateShipmentPage() {
                   id="originLocation"
                   name="originLocation"
                   type="text"
+                  maxLength="150"
                   className="form-control"
                   placeholder="Example: Mumbai"
+                  value={formData.originLocation}
+                  onChange={handleChange}
                   required
                 />
               </div>
 
               <div className="col-12 col-md-6">
-                <label htmlFor="destinationLocation" className="form-label">
+                <label
+                  htmlFor="destinationLocation"
+                  className="form-label"
+                >
                   Destination Location
                 </label>
 
@@ -84,14 +162,20 @@ function CreateShipmentPage() {
                   id="destinationLocation"
                   name="destinationLocation"
                   type="text"
+                  maxLength="150"
                   className="form-control"
                   placeholder="Example: Bengaluru"
+                  value={formData.destinationLocation}
+                  onChange={handleChange}
                   required
                 />
               </div>
 
               <div className="col-12 col-md-6">
-                <label htmlFor="expectedPickupDate" className="form-label">
+                <label
+                  htmlFor="expectedPickupDate"
+                  className="form-label"
+                >
                   Expected Pickup Date
                 </label>
 
@@ -99,12 +183,18 @@ function CreateShipmentPage() {
                   id="expectedPickupDate"
                   name="expectedPickupDate"
                   type="date"
+                  min={today}
                   className="form-control"
+                  value={formData.expectedPickupDate}
+                  onChange={handleChange}
                 />
               </div>
 
               <div className="col-12 col-md-6">
-                <label htmlFor="expectedDeliveryDate" className="form-label">
+                <label
+                  htmlFor="expectedDeliveryDate"
+                  className="form-label"
+                >
                   Expected Delivery Date
                 </label>
 
@@ -112,7 +202,10 @@ function CreateShipmentPage() {
                   id="expectedDeliveryDate"
                   name="expectedDeliveryDate"
                   type="date"
+                  min={formData.expectedPickupDate || today}
                   className="form-control"
+                  value={formData.expectedDeliveryDate}
+                  onChange={handleChange}
                 />
               </div>
             </div>
@@ -122,12 +215,27 @@ function CreateShipmentPage() {
                 type="button"
                 className="btn btn-outline-secondary"
                 onClick={() => navigate('/shipments')}
+                disabled={submitting}
               >
                 Cancel
               </button>
 
-              <button type="submit" className="btn btn-primary">
-                Create Shipment
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <span
+                      className="spinner-border spinner-border-sm me-2"
+                      aria-hidden="true"
+                    />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Shipment'
+                )}
               </button>
             </div>
           </form>
