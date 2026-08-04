@@ -172,7 +172,8 @@ function ShipmentDetailsPage() {
     return (
       <main className="container py-4">
         <Link
-          to="/shipments"
+          to=".."
+          relative="path"
           className="btn btn-link p-0 mb-3 text-decoration-none"
         >
           ← Back to Shipments
@@ -204,7 +205,8 @@ function ShipmentDetailsPage() {
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
         <div>
           <Link
-            to="/shipments"
+            to=".."
+            relative="path"
             className="btn btn-link p-0 mb-2 text-decoration-none"
           >
             ← Back to Shipments
@@ -332,7 +334,7 @@ function ShipmentDetailsPage() {
               </div>
 
               <Link
-                to={`/shipments/${shipmentId}/cargo`}
+                to="cargo"
                 className="btn btn-sm btn-outline-primary"
               >
                 Add Cargo
@@ -351,7 +353,7 @@ function ShipmentDetailsPage() {
                 </p>
 
                 <Link
-                  to={`/shipments/${shipmentId}/cargo`}
+                  to="cargo"
                   className="btn btn-primary"
                 >
                   Add First Cargo Item
@@ -475,14 +477,14 @@ function ShipmentDetailsPage() {
 
             <div className="card-body d-grid gap-2">
               <Link
-                to={`/shipments/${shipmentId}/cargo`}
+                to="cargo"
                 className="btn btn-primary"
               >
                 Add Cargo
               </Link>
 
               <Link
-                to={`/shipments/${shipmentId}/events`}
+                to="events"
                 className="btn btn-outline-secondary"
               >
                 View Event History

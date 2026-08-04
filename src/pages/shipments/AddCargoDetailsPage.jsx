@@ -83,7 +83,7 @@ function AddCargoDetailsPage() {
   };
 
   const handleBackToDetails = () => {
-    navigate(`/shipments/${shipmentId}`);
+    navigate('..', { relative: 'path' });
   };
 
   const validateForm = () => {
@@ -173,7 +173,7 @@ function AddCargoDetailsPage() {
       await addCargoDetails(shipmentId, cargoData);
 
       setFormData(INITIAL_FORM_DATA);
-      navigate(`/shipments/${shipmentId}`);
+      navigate('..', { relative: 'path' });
     } catch (requestError) {
       setError(getBackendErrorMessage(requestError));
     } finally {

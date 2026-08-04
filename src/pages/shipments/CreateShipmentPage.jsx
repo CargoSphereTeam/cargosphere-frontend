@@ -194,7 +194,7 @@ function CreateShipmentPage({ clientUserId }) {
 
       setFormData(INITIAL_FORM_DATA);
 
-      navigate(`/shipments/${createdShipment.id}`);
+      navigate(`../${createdShipment.id}`, { relative: 'path' });
     } catch (requestError) {
       setError(getBackendErrorMessage(requestError));
     } finally {
@@ -389,7 +389,7 @@ function CreateShipmentPage({ clientUserId }) {
               <button
                 type="button"
                 className="btn btn-outline-secondary"
-                onClick={() => navigate('/shipments')}
+                onClick={() => navigate('..', { relative: 'path' })}
                 disabled={submitting}
               >
                 Cancel

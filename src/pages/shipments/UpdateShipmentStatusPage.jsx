@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import ShipmentStatusBadge from '../../components/shipment/ShipmentStatusBadge.jsx';
 
 const CURRENT_STATUS = 'BOOKED';
@@ -17,13 +17,12 @@ function formatStatus(status) {
 
 function UpdateShipmentStatusPage() {
   const navigate = useNavigate();
-  const { shipmentId } = useParams();
 
   const availableStatuses =
     ALLOWED_TRANSITIONS[CURRENT_STATUS] ?? [];
 
   const handleBackToDetails = () => {
-    navigate(`/shipments/${shipmentId}`);
+    navigate('..', { relative: 'path' });
   };
 
   const handleSubmit = (event) => {
