@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const SAMPLE_EVENTS = [
   {
@@ -43,13 +43,13 @@ function formatDateTime(value) {
 }
 
 function ShipmentEventsPage() {
-  const { shipmentId } = useParams();
 
   return (
     <main className="container py-4">
       <div className="mb-4">
         <Link
-          to={`/shipments/${shipmentId}`}
+          to=".."
+          relative="path"
           className="btn btn-link p-0 mb-2 text-decoration-none"
         >
           ← Back to Shipment Details

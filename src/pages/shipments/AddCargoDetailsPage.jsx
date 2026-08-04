@@ -1,15 +1,14 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 function AddCargoDetailsPage() {
   const navigate = useNavigate();
-  const { shipmentId } = useParams();
 
   const handleSubmit = (event) => {
     event.preventDefault();
   };
 
   const handleBackToDetails = () => {
-    navigate(`/shipments/${shipmentId}`);
+    navigate('..', { relative: 'path' });
   };
 
   return (

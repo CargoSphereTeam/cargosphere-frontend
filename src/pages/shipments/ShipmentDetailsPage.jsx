@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import ShipmentStatusBadge from '../../components/shipment/ShipmentStatusBadge.jsx';
 
 const SAMPLE_SHIPMENT = {
@@ -16,7 +16,6 @@ const SAMPLE_SHIPMENT = {
 };
 
 function ShipmentDetailsPage() {
-  const { shipmentId } = useParams();
   const shipment = SAMPLE_SHIPMENT;
 
   return (
@@ -24,7 +23,8 @@ function ShipmentDetailsPage() {
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
         <div>
           <Link
-            to="/shipments"
+            to=".."
+            relative="path"
             className="btn btn-link p-0 mb-2 text-decoration-none"
           >
             ← Back to Shipments
@@ -135,7 +135,7 @@ function ShipmentDetailsPage() {
               <h2 className="h5 mb-0">Cargo Details</h2>
 
               <Link
-                to={`/shipments/${shipmentId}/cargo`}
+                to="cargo"
                 className="btn btn-sm btn-outline-primary"
               >
                 Add Cargo
@@ -158,14 +158,14 @@ function ShipmentDetailsPage() {
 
             <div className="card-body d-grid gap-2">
               <Link
-                to={`/shipments/${shipmentId}/status`}
+                to="status"
                 className="btn btn-primary"
               >
                 Update Status
               </Link>
 
               <Link
-                to={`/shipments/${shipmentId}/events`}
+                to="events"
                 className="btn btn-outline-secondary"
               >
                 View Event History
