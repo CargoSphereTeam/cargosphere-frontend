@@ -58,7 +58,7 @@ function CreateShipmentPage() {
 
       const createdShipment = await createShipment(shipmentData);
 
-      navigate(`/shipments/${createdShipment.id}`);
+      navigate(`../${createdShipment.id}`, { relative: 'path' });
     } catch (requestError) {
       const errorMessage =
         requestError.response?.data?.message ??
@@ -214,7 +214,7 @@ function CreateShipmentPage() {
               <button
                 type="button"
                 className="btn btn-outline-secondary"
-                onClick={() => navigate('/shipments')}
+                onClick={() => navigate('..', { relative: 'path' })}
                 disabled={submitting}
               >
                 Cancel

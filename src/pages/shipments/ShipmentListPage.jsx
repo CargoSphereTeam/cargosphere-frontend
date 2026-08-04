@@ -1,7 +1,13 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getAllShipments } from '../../api/shipmentApi.js';
+import {
+  getAllShipments,
+  getShipmentsByClientUserId,
+} from '../../api/shipmentApi.js';
 import ShipmentStatusBadge from '../../components/shipment/ShipmentStatusBadge.jsx';
+import useAuth from '../../context/useAuth.js';
+import useShipmentBasePath from '../../hooks/useShipmentBasePath.js';
+import { getApiErrorDetails } from '../../utils/apiError.js';
 
 function formatDate(value) {
   if (!value) {
@@ -16,6 +22,9 @@ function formatDate(value) {
 }
 
 function ShipmentListPage() {
+  const { user } = useAuth();
+  const shipmentBasePath = useShipmentBasePath();
+
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,8 +33,14 @@ function ShipmentListPage() {
     let isActive = true;
 
     async function loadShipments() {
+      setLoading(true);
+      setError('');
+
       try {
-        const shipmentData = await getAllShipments();
+        const shipmentData =
+          user.role === 'ROLE_ADMIN'
+            ? await getAllShipments()
+            : await getShipmentsByClientUserId(user.id);
 
         if (isActive) {
           setShipments(
@@ -34,11 +49,13 @@ function ShipmentListPage() {
         }
       } catch (requestError) {
         if (isActive) {
-          const errorMessage =
-            requestError.response?.data?.message ??
-            'Unable to load shipments. Please try again.';
+          const apiError = getApiErrorDetails(
+            requestError,
+            'Unable to load shipments. Please try again.',
+          );
 
-          setError(errorMessage);
+          setError(apiError.message);
+          setShipments([]);
         }
       } finally {
         if (isActive) {
@@ -52,7 +69,7 @@ function ShipmentListPage() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [user.id, user.role]);
 
   return (
     <main className="container py-4">
@@ -61,20 +78,22 @@ function ShipmentListPage() {
           <h1 className="h2 mb-1">Shipments</h1>
 
           <p className="text-secondary mb-0">
-            View and manage CargoSphere shipments.
+            {user.role === 'ROLE_ADMIN'
+              ? 'View and manage all CargoSphere shipments.'
+              : 'View and manage your CargoSphere shipments.'}
           </p>
         </div>
 
-        <Link to="/shipments/new" className="btn btn-primary">
+        <Link to={`${shipmentBasePath}/new`} className="btn btn-primary">
           Create Shipment
         </Link>
       </div>
 
-      {error && (
+      {error ? (
         <div className="alert alert-danger" role="alert">
           {error}
         </div>
-      )}
+      ) : null}
 
       <div className="card shadow-sm">
         {loading ? (
@@ -101,7 +120,7 @@ function ShipmentListPage() {
             </p>
 
             <Link
-              to="/shipments/new"
+              to={`${shipmentBasePath}/new`}
               className="btn btn-primary"
             >
               Create Shipment
@@ -131,7 +150,7 @@ function ShipmentListPage() {
 
                       <td>
                         {shipment.originLocation}
-                        {' → '}
+                        {' \u2192 '}
                         {shipment.destinationLocation}
                       </td>
 
@@ -151,7 +170,7 @@ function ShipmentListPage() {
 
                       <td className="text-end">
                         <Link
-                          to={`/shipments/${shipment.id}`}
+                          to={`${shipmentBasePath}/${shipment.id}`}
                           className="btn btn-sm btn-outline-primary"
                         >
                           View Details

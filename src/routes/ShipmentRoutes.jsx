@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
+import NotFoundPage from '../pages/common/NotFoundPage.jsx';
 import AddCargoDetailsPage from '../pages/shipments/AddCargoDetailsPage.jsx';
 import CreateShipmentPage from '../pages/shipments/CreateShipmentPage.jsx';
 import ShipmentDetailsPage from '../pages/shipments/ShipmentDetailsPage.jsx';
@@ -9,39 +10,34 @@ import UpdateShipmentStatusPage from '../pages/shipments/UpdateShipmentStatusPag
 function ShipmentRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/shipments" replace />} />
+      <Route index element={<ShipmentListPage />} />
 
       <Route
-        path="/shipments"
-        element={<ShipmentListPage />}
-      />
-
-      <Route
-        path="/shipments/new"
+        path="new"
         element={<CreateShipmentPage />}
       />
 
       <Route
-        path="/shipments/:shipmentId"
+        path=":shipmentId"
         element={<ShipmentDetailsPage />}
       />
 
       <Route
-        path="/shipments/:shipmentId/cargo"
+        path=":shipmentId/cargo"
         element={<AddCargoDetailsPage />}
       />
 
       <Route
-        path="/shipments/:shipmentId/events"
+        path=":shipmentId/events"
         element={<ShipmentEventsPage />}
       />
 
       <Route
-        path="/shipments/:shipmentId/status"
+        path=":shipmentId/status"
         element={<UpdateShipmentStatusPage />}
       />
 
-      <Route path="*" element={<Navigate to="/shipments" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
