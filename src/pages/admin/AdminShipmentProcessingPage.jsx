@@ -4,6 +4,7 @@ import {
   continueShipmentProcessing,
   downloadEbillPdf,
   generateEbill,
+  getEbillPreview,
   getProcessingReadiness,
   startShipmentProcessing,
 } from '../../api/adminShipmentApi.js';
@@ -11,6 +12,7 @@ import {
   formatProcessingStage,
 } from '../../constants/processingStages.js';
 import { getApiErrorDetails } from '../../utils/apiError.js';
+import EbillPreviewPanel from './EbillPreviewPanel.jsx';
 
 function ReadinessItem({ label, ready }) {
   return (
@@ -47,6 +49,8 @@ function AdminShipmentProcessingPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [ebillPreview, setEbillPreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -96,6 +100,7 @@ function AdminShipmentProcessingPage() {
 
     try {
       await action();
+      setEbillPreview(null);
       await refreshReadiness();
       setSuccessMessage(message);
     } catch (requestError) {
@@ -122,6 +127,29 @@ function AdminShipmentProcessingPage() {
       () => continueShipmentProcessing(shipmentId),
       'Shipment advanced to the next processing stage.',
     );
+  }
+
+  async function handlePreviewEbill() {
+    setPreviewLoading(true);
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const response = await getEbillPreview(shipmentId);
+      setEbillPreview(response);
+      setSuccessMessage(
+        'Live eBill preview loaded successfully.',
+      );
+    } catch (requestError) {
+      const apiError = getApiErrorDetails(
+        requestError,
+        'Unable to load the eBill preview.',
+      );
+
+      setError(apiError.message);
+    } finally {
+      setPreviewLoading(false);
+    }
   }
 
   function handleGenerateEbill() {
@@ -219,7 +247,8 @@ function AdminShipmentProcessingPage() {
       ) : null}
 
       {!loading && readiness ? (
-        <div className="row g-4">
+        <>
+          <div className="row g-4">
           <div className="col-lg-8">
             <div className="card shadow-sm">
               <div className="card-body">
@@ -302,17 +331,33 @@ function AdminShipmentProcessingPage() {
                   ) : null}
 
                   {processingStage === 'READY_FOR_EBILL' ? (
-                    <button
-                      type="button"
-                      className="btn btn-success"
-                      disabled={
-                        actionLoading ||
-                        !readiness.ebillReady
-                      }
-                      onClick={handleGenerateEbill}
-                    >
-                      Generate eBill
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-outline-primary"
+                        disabled={
+                          actionLoading || previewLoading
+                        }
+                        onClick={handlePreviewEbill}
+                      >
+                        {previewLoading
+                          ? 'Loading Preview...'
+                          : 'Preview eBill'}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-success"
+                        disabled={
+                          actionLoading ||
+                          previewLoading ||
+                          !readiness.ebillReady
+                        }
+                        onClick={handleGenerateEbill}
+                      >
+                        Generate eBill
+                      </button>
+                    </>
                   ) : null}
 
                   {processingStage === 'EBILL_GENERATED' ? (
@@ -357,6 +402,14 @@ function AdminShipmentProcessingPage() {
             </div>
           </div>
         </div>
+
+        {ebillPreview ? (
+          <EbillPreviewPanel
+            preview={ebillPreview}
+            onClose={() => setEbillPreview(null)}
+          />
+        ) : null}
+        </>
       ) : null}
     </main>
   );
