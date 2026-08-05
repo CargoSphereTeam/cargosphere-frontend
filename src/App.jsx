@@ -1,4 +1,4 @@
-﻿import {
+import {
   Navigate,
   Route,
   Routes,
@@ -6,6 +6,7 @@
 import LoginPage from './pages/auth/LoginPage.jsx';
 import AccessDeniedPage from './pages/common/AccessDeniedPage.jsx';
 import NotFoundPage from './pages/common/NotFoundPage.jsx';
+import AdminShipmentProcessingPage from './pages/admin/AdminShipmentProcessingPage.jsx';
 import GuestRoute from './routes/GuestRoute.jsx';
 import ProtectedRoute from './routes/ProtectedRoute.jsx';
 import RoleHomeRedirect from './routes/RoleHomeRedirect.jsx';
@@ -36,6 +37,12 @@ function App() {
               <Navigate to="/admin/shipments" replace />
             }
           />
+
+          <Route
+            path="/admin/shipments/:shipmentId/process"
+            element={<AdminShipmentProcessingPage />}
+          />
+
 
           <Route
             path="/admin/shipments/*"

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   getAllShipments,
@@ -169,12 +169,23 @@ function ShipmentListPage() {
                       </td>
 
                       <td className="text-end">
-                        <Link
-                          to={`${shipmentBasePath}/${shipment.id}`}
-                          className="btn btn-sm btn-outline-primary"
-                        >
-                          View Details
-                        </Link>
+                        <div className="d-flex justify-content-end gap-2">
+                          <Link
+                            to={`${shipmentBasePath}/${shipment.id}`}
+                            className="btn btn-sm btn-outline-primary"
+                          >
+                            View Details
+                          </Link>
+
+                          {user.role === 'ROLE_ADMIN' ? (
+                            <Link
+                              to={`${shipmentBasePath}/${shipment.id}/process`}
+                              className="btn btn-sm btn-primary"
+                            >
+                              Process Shipment
+                            </Link>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   ))}
