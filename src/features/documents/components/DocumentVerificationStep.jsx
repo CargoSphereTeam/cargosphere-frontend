@@ -69,7 +69,7 @@ function DocumentVerificationStep({ shipmentId, onCompleted }) {
             <div className="spinner-border" role="status" aria-label="Loading" />
             <p className="mt-3 mb-0">Loading documents...</p>
           </div>
-        ) : documents.length === 0 ? (
+        ) : error ? null : documents.length === 0 ? (
           <div className="alert alert-info mb-0">
             No document records are available for this shipment.
           </div>
