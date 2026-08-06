@@ -1,18 +1,24 @@
 function PaymentSummaryActions({
   onSaveDraft,
-  onConfirm,
+  onApprove,
   loading = false,
-  disabled = false,
+  saveDisabled = false,
+  approveDisabled = false,
 }) {
   return (
     <div className="card shadow-sm mt-4">
-      <div className="card-body d-flex justify-content-end gap-2">
+      <div className="card-body">
+        <div className="alert alert-info py-2 mb-3">
+          Approving publishes the final amount to the client. This stage stays
+          pending until the client payment is verified.
+        </div>
+        <div className="d-flex justify-content-end gap-2">
 
         <button
           type="button"
           className="btn btn-outline-secondary"
           onClick={onSaveDraft}
-          disabled={loading || disabled}
+          disabled={loading || saveDisabled}
         >
           Save Draft
         </button>
@@ -20,12 +26,13 @@ function PaymentSummaryActions({
         <button
           type="button"
           className="btn btn-primary"
-          onClick={onConfirm}
-          disabled={loading || disabled}
+          onClick={onApprove}
+          disabled={loading || approveDisabled}
         >
-          Confirm & Continue
+          Approve Payment Details
         </button>
 
+        </div>
       </div>
     </div>
   );

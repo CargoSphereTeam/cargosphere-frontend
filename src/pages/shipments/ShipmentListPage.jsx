@@ -8,6 +8,7 @@ import ShipmentStatusBadge from '../../components/shipment/ShipmentStatusBadge.j
 import useAuth from '../../context/useAuth.js';
 import useShipmentBasePath from '../../hooks/useShipmentBasePath.js';
 import { getApiErrorDetails } from '../../utils/apiError.js';
+import './shipmentListPage.css';
 
 function formatDate(value) {
   if (!value) {
@@ -71,33 +72,59 @@ function ShipmentListPage() {
     };
   }, [user.id, user.role]);
 
-  return (
-    <main className="container py-4">
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <div>
-          <h1 className="h2 mb-1">Shipments</h1>
+  const activeShipments = shipments.filter(
+    (shipment) => !['DELIVERED', 'CANCELLED'].includes(shipment.status),
+  ).length;
+  const deliveredShipments = shipments.filter(
+    (shipment) => shipment.status === 'DELIVERED',
+  ).length;
+  const nextDelivery = shipments
+    .map((shipment) => shipment.expectedDeliveryDate)
+    .filter(Boolean)
+    .sort()[0];
 
-          <p className="text-secondary mb-0">
-            {user.role === 'ROLE_ADMIN'
-              ? 'View and manage all CargoSphere shipments.'
-              : 'View and manage your CargoSphere shipments.'}
-          </p>
+  return (
+    <main className="cargo-shipments-page">
+      <div className="container cargo-shipments-container">
+        <div className="cargo-shipments-heading">
+          <div>
+            <span className="cargo-page-label">
+              {user.role === 'ROLE_ADMIN' ? 'OPERATIONS CONTROL' : 'CLIENT WORKSPACE'}
+            </span>
+            <h1>Shipments</h1>
+
+            <p>
+              {user.role === 'ROLE_ADMIN'
+                ? 'Monitor and manage every shipment across the network.'
+                : `Welcome back, ${user.fullName}. Track every movement in one place.`}
+            </p>
+          </div>
+
+          <Link to={`${shipmentBasePath}/new`} className="cargo-create-button">
+            <span>+</span> Create shipment
+          </Link>
         </div>
 
-        <Link to={`${shipmentBasePath}/new`} className="btn btn-primary">
-          Create Shipment
-        </Link>
-      </div>
+        <section className="cargo-shipment-stats" aria-label="Shipment summary">
+          <article><span>Total shipments</span><strong>{shipments.length}</strong><small>All recorded freight</small></article>
+          <article><span>Active movement</span><strong>{activeShipments}</strong><small>Requiring attention</small></article>
+          <article><span>Delivered</span><strong>{deliveredShipments}</strong><small>Completed successfully</small></article>
+          <article><span>Next delivery</span><strong className="cargo-stat-date">{nextDelivery ? formatDate(nextDelivery) : 'Not scheduled'}</strong><small>Closest expected date</small></article>
+        </section>
 
-      {error ? (
+        {error ? (
         <div className="alert alert-danger" role="alert">
           {error}
         </div>
       ) : null}
 
-      <div className="card shadow-sm">
+      <div className="cargo-shipment-panel">
+        <div className="cargo-panel-heading">
+          <div><span className="cargo-live-dot" /> LIVE OVERVIEW</div>
+          <span>{shipments.length} records</span>
+        </div>
         {loading ? (
-          <div className="card-body text-center py-5">
+          <div className="text-center py-5">
             <div
               className="spinner-border text-primary"
               role="status"
@@ -107,30 +134,30 @@ function ShipmentListPage() {
               </span>
             </div>
 
-            <p className="text-secondary mt-3 mb-0">
+            <p className="cargo-panel-muted mt-3 mb-0">
               Loading shipments...
             </p>
           </div>
         ) : shipments.length === 0 && !error ? (
-          <div className="card-body text-center py-5">
+          <div className="text-center py-5">
             <h2 className="h5">No shipments found</h2>
 
-            <p className="text-secondary mb-3">
+            <p className="cargo-panel-muted mb-3">
               Create the first shipment to begin tracking cargo.
             </p>
 
             <Link
               to={`${shipmentBasePath}/new`}
-              className="btn btn-primary"
+              className="cargo-create-button"
             >
               Create Shipment
             </Link>
           </div>
         ) : (
-          <div className="card-body p-0">
+          <div>
             <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
-                <thead className="table-light">
+              <table className="table cargo-shipments-table align-middle mb-0">
+                <thead>
                   <tr>
                     <th>Shipment Number</th>
                     <th>Route</th>
@@ -144,14 +171,17 @@ function ShipmentListPage() {
                 <tbody>
                   {shipments.map((shipment) => (
                     <tr key={shipment.id}>
-                      <td className="fw-semibold">
-                        {shipment.shipmentNumber}
+                      <td>
+                        <div className="cargo-shipment-number">{shipment.shipmentNumber}</div>
+                        <small>#{shipment.id}</small>
                       </td>
 
                       <td>
-                        {shipment.originLocation}
-                        {' \u2192 '}
-                        {shipment.destinationLocation}
+                        <div className="cargo-route-cell">
+                          <span>{shipment.originLocation}</span>
+                          <i>→</i>
+                          <span>{shipment.destinationLocation}</span>
+                        </div>
                       </td>
 
                       <td>{shipment.shipmentType}</td>
@@ -172,7 +202,7 @@ function ShipmentListPage() {
                         <div className="d-flex justify-content-end gap-2">
                           <Link
                             to={`${shipmentBasePath}/${shipment.id}`}
-                            className="btn btn-sm btn-outline-primary"
+                            className="cargo-table-action"
                           >
                             View Details
                           </Link>
@@ -180,7 +210,7 @@ function ShipmentListPage() {
                           {user.role === 'ROLE_ADMIN' ? (
                             <Link
                               to={`${shipmentBasePath}/${shipment.id}/process`}
-                              className="btn btn-sm btn-primary"
+                              className="cargo-table-action cargo-table-action-primary"
                             >
                               Process Shipment
                             </Link>
@@ -194,6 +224,7 @@ function ShipmentListPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </main>
   );

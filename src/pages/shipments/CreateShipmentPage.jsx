@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { createShipment } from '../../api/shipmentApi.js';
+import useAuth from '../../context/useAuth.js';
+import './createShipmentPage.css';
 
 const INITIAL_FORM_DATA = {
   clientUserId: '',
@@ -74,13 +77,15 @@ function getBackendErrorMessage(requestError) {
   return 'Unable to create the shipment. Please check the details and try again.';
 }
 
-function CreateShipmentPage({ clientUserId }) {
+function CreateShipmentPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const hasAuthenticatedClientId = Number(clientUserId) > 0;
+  const hasAuthenticatedClientId =
+    user.role === 'ROLE_CLIENT' && Number(user.id) > 0;
 
   const authenticatedClientUserId = hasAuthenticatedClientId
-    ? String(clientUserId)
+    ? String(user.id)
     : '';
 
   const [formData, setFormData] = useState(
@@ -192,6 +197,8 @@ function CreateShipmentPage({ clientUserId }) {
       const createdShipment =
         await createShipment(shipmentData);
 
+      toast.success('Shipment created successfully.');
+
       setFormData(INITIAL_FORM_DATA);
 
       navigate(`../${createdShipment.id}`, { relative: 'path' });
@@ -203,14 +210,20 @@ function CreateShipmentPage({ clientUserId }) {
   };
 
   return (
-    <main className="container py-4">
-      <div className="mb-4">
-        <h1 className="h2 mb-1">Create Shipment</h1>
+    <main className="cargo-create-page">
+      <div className="container cargo-create-container">
+      <div className="cargo-create-heading">
+        <div>
+          <span className="cargo-page-label">NEW BOOKING</span>
+          <h1>Create shipment</h1>
 
-        <p className="text-secondary">
-          Enter the shipment route, transport type, and expected
-          dates.
-        </p>
+          <p>
+            Define the route, transport mode, and delivery timeline.
+          </p>
+        </div>
+        <div className="cargo-create-progress">
+          <span className="active">01</span><i /><span>02</span><i /><span>03</span>
+        </div>
       </div>
 
       {error && (
@@ -219,8 +232,24 @@ function CreateShipmentPage({ clientUserId }) {
         </div>
       )}
 
-      <div className="card shadow-sm">
-        <div className="card-body p-4">
+      <div className="cargo-create-layout">
+        <aside className="cargo-create-aside">
+          <span className="cargo-create-aside-label">SHIPMENT SETUP</span>
+          <h2>Start with the route.</h2>
+          <p>Your shipment number is generated automatically after this booking is saved.</p>
+          <div className="cargo-create-steps">
+            <div className="active"><span>1</span><div><strong>Shipment details</strong><small>Route, mode and dates</small></div></div>
+            <div><span>2</span><div><strong>Cargo details</strong><small>Weight, volume and handling</small></div></div>
+            <div><span>3</span><div><strong>Admin processing</strong><small>Verification and payment</small></div></div>
+          </div>
+        </aside>
+
+      <div className="card cargo-create-card">
+        <div className="card-body">
+          <div className="cargo-form-section-heading">
+            <span>BOOKING INFORMATION</span>
+            <small>Fields marked required must be completed</small>
+          </div>
           <form onSubmit={handleSubmit}>
             <div className="row g-3">
               <div className="col-12 col-md-6">
@@ -237,14 +266,13 @@ function CreateShipmentPage({ clientUserId }) {
                       id="clientUserId"
                       name="clientUserId"
                       type="number"
-                      className="form-control"
+                      className="form-control cargo-readonly-field"
                       value={authenticatedClientUserId}
                       disabled
                     />
 
                     <div className="form-text">
-                      This value comes from the authenticated
-                      account.
+                      Automatically assigned from your signed-in account.
                     </div>
                   </>
                 ) : (
@@ -263,8 +291,7 @@ function CreateShipmentPage({ clientUserId }) {
                     />
 
                     <div className="form-text">
-                      Temporary fallback until authentication is
-                      integrated.
+                      Enter the client account ID for this shipment.
                     </div>
                   </>
                 )}
@@ -388,7 +415,7 @@ function CreateShipmentPage({ clientUserId }) {
             <div className="d-flex justify-content-end gap-2 mt-4">
               <button
                 type="button"
-                className="btn btn-outline-secondary"
+                className="cargo-create-cancel"
                 onClick={() => navigate('..', { relative: 'path' })}
                 disabled={submitting}
               >
@@ -397,7 +424,7 @@ function CreateShipmentPage({ clientUserId }) {
 
               <button
                 type="submit"
-                className="btn btn-primary"
+                className="cargo-create-submit"
                 disabled={submitting}
               >
                 {submitting ? (
@@ -415,6 +442,8 @@ function CreateShipmentPage({ clientUserId }) {
             </div>
           </form>
         </div>
+      </div>
+      </div>
       </div>
     </main>
   );

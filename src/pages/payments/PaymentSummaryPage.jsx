@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
 import PaymentSummaryCard from '../../components/payment/PaymentSummaryCard.jsx';
 import PaymentSummaryForm from '../../components/payment/PaymentSummaryForm.jsx';
@@ -24,7 +25,7 @@ function PaymentSummaryPage() {
 });
 
 const [summary, setSummary] = useState(null);
-const [loading, setLoading] = useState(true);
+const [loading, setLoading] = useState(Boolean(shipmentId));
 const [error, setError] = useState('');
 
 const isFormValid =
@@ -34,7 +35,7 @@ const isFormValid =
   formData.paymentMethod.trim() !== '';
 
 
-   const loadPaymentSummary = async () => {
+  const loadPaymentSummary = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -43,6 +44,8 @@ const isFormValid =
         await getShipmentPaymentSummary(shipmentId);
 
       setSummary(paymentSummary);
+
+      if (!paymentSummary) return;
 
       setFormData({
         estimatedAmount: paymentSummary.estimatedAmount ?? '',
@@ -64,7 +67,7 @@ const isFormValid =
     } finally {
       setLoading(false);
     }
-  };
+  }, [shipmentId]);
 
   const handleSaveDraft = async () => {
   try {
@@ -80,6 +83,7 @@ const isFormValid =
     );
 
     await loadPaymentSummary();
+    toast.success('Payment draft saved.');
   } catch (requestError) {
     const errorMessage =
       requestError.response?.data?.message ??
@@ -91,7 +95,7 @@ const isFormValid =
   }
 };
 
-const handleConfirm = async () => {
+const handleApprove = async () => {
   try {
     setLoading(true);
     setError('');
@@ -100,15 +104,17 @@ const handleConfirm = async () => {
       shipmentId,
       {
         ...formData,
-        action: 'CONFIRM_AND_CONTINUE',
+        paidAmount: 0,
+        action: 'APPROVE_FOR_PAYMENT',
       },
     );
 
     await loadPaymentSummary();
+    toast.success('Payment details approved. Waiting for client payment.');
   } catch (requestError) {
     const errorMessage =
       requestError.response?.data?.message ??
-      'Unable to confirm payment summary.';
+      'Unable to approve payment details.';
 
     setError(errorMessage);
   } finally {
@@ -117,15 +123,18 @@ const handleConfirm = async () => {
 };
 
   useEffect(() => {
-  if (!shipmentId) {
-    setLoading(false);
-    return;
-  }
+    if (!shipmentId) return undefined;
+    const timerId = window.setTimeout(() => void loadPaymentSummary(), 0);
+    return () => window.clearTimeout(timerId);
+  }, [loadPaymentSummary, shipmentId]);
 
- 
-
-  loadPaymentSummary();
-}, [shipmentId]);
+  const toAmount = (value) => Number(value || 0);
+  const finalAmount =
+    toAmount(formData.baseAmount) +
+    toAmount(formData.charges) +
+    toAmount(formData.taxes) -
+    toAmount(formData.discount);
+  const balanceAmount = finalAmount - toAmount(formData.paidAmount);
   return (
     <main className="container py-4">
       <div className="mb-4">
@@ -147,13 +156,16 @@ const handleConfirm = async () => {
       <PaymentSummaryForm
   formData={formData}
   setFormData={setFormData}
+  finalAmount={finalAmount}
+  balanceAmount={balanceAmount}
 />
 
       <PaymentSummaryActions
   onSaveDraft={handleSaveDraft}
-  onConfirm={handleConfirm}
+  onApprove={handleApprove}
   loading={loading}
-  disabled={!isFormValid}
+  saveDisabled={!isFormValid}
+  approveDisabled={!isFormValid || finalAmount <= 0 || summary?.paymentConfirmed}
 />
     </main>
   );

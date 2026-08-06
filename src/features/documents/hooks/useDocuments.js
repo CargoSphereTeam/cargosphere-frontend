@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  createDocument,
   getDocumentsByShipmentId,
   updateDocumentVerification,
 } from '../api/documentApi.js';
@@ -10,6 +11,7 @@ function useDocuments(shipmentId) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [updatingDocumentId, setUpdatingDocumentId] = useState(null);
+  const [creatingDocuments, setCreatingDocuments] = useState(false);
 
   const loadDocuments = useCallback(async () => {
     if (!shipmentId) {
@@ -81,11 +83,46 @@ function useDocuments(shipmentId) {
     [],
   );
 
+  const addRequiredDocuments = useCallback(
+    async (documentTypes) => {
+      try {
+        setCreatingDocuments(true);
+        setError('');
+
+        await Promise.all(
+          documentTypes.map((documentType) =>
+            createDocument({
+              shipmentId: Number(shipmentId),
+              documentType,
+              required: true,
+              remarks: null,
+            }),
+          ),
+        );
+
+        return await loadDocuments();
+      } catch (requestError) {
+        setError(
+          getApiErrorMessage(
+            requestError,
+            'Unable to add shipment documents.',
+          ),
+        );
+        return null;
+      } finally {
+        setCreatingDocuments(false);
+      }
+    },
+    [loadDocuments, shipmentId],
+  );
+
   return {
     documents,
     error,
     loading,
     updatingDocumentId,
+    creatingDocuments,
+    addRequiredDocuments,
     loadDocuments,
     updateVerification,
   };

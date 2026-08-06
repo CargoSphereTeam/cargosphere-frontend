@@ -5,6 +5,9 @@ import {
   getShipmentById,
 } from '../../api/shipmentApi.js';
 import ShipmentStatusBadge from '../../components/shipment/ShipmentStatusBadge.jsx';
+import RazorpayCheckoutButton from '../../components/payment/RazorpayCheckoutButton.jsx';
+import { calculateShipmentPrice } from '../../utils/shipmentPricing.js';
+import './shipmentDetailsPage.css';
 
 function formatDate(value) {
   if (!value) {
@@ -19,23 +22,6 @@ function formatDate(value) {
 
   return new Intl.DateTimeFormat('en-IN', {
     dateStyle: 'medium',
-  }).format(date);
-}
-
-function formatDateTime(value) {
-  if (!value) {
-    return 'Not available';
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat('en-IN', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
   }).format(date);
 }
 
@@ -149,9 +135,23 @@ function ShipmentDetailsPage() {
     0,
   );
 
+  const paymentDetails =
+    shipment && cargoDetails.length > 0
+      ? calculateShipmentPrice(shipment, cargoDetails)
+      : null;
+  const canAddCargo = ['CREATED', 'BOOKED'].includes(shipment?.status);
+
+  function formatCurrency(value, currency = 'INR') {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+    }).format(Number(value) || 0);
+  }
+
   if (loading) {
     return (
-      <main className="container py-5 text-center">
+      <main className="cargo-details-page cargo-details-state text-center">
         <div
           className="spinner-border text-primary"
           role="status"
@@ -170,7 +170,7 @@ function ShipmentDetailsPage() {
 
   if (error || !shipment) {
     return (
-      <main className="container py-4">
+      <main className="cargo-details-page cargo-details-state">
         <Link
           to=".."
           relative="path"
@@ -201,20 +201,21 @@ function ShipmentDetailsPage() {
   }
 
   return (
-    <main className="container py-4">
+    <main className="cargo-details-page">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 mb-4">
         <div>
           <Link
             to=".."
             relative="path"
-            className="btn btn-link p-0 mb-2 text-decoration-none"
+            className="cargo-details-back"
           >
             ← Back to Shipments
           </Link>
 
-          <h1 className="h2 mb-1">Shipment Details</h1>
+          <span className="cargo-page-label d-block mt-4">SHIPMENT OVERVIEW</span>
+          <h1>Shipment details</h1>
 
-          <p className="text-secondary mb-0">
+          <p className="cargo-details-number">
             {shipment.shipmentNumber}
           </p>
         </div>
@@ -224,8 +225,8 @@ function ShipmentDetailsPage() {
 
       <div className="row g-4">
         <div className="col-12 col-lg-8">
-          <div className="card shadow-sm mb-4">
-            <div className="card-header bg-body">
+          <div className="card cargo-detail-card mb-4">
+            <div className="card-header">
               <h2 className="h5 mb-0">
                 Shipment Information
               </h2>
@@ -322,8 +323,8 @@ function ShipmentDetailsPage() {
             </div>
           </div>
 
-          <div className="card shadow-sm">
-            <div className="card-header bg-body d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+          <div className="card cargo-detail-card cargo-table-card">
+            <div className="card-header d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
               <div>
                 <h2 className="h5 mb-1">Cargo Details</h2>
 
@@ -333,12 +334,11 @@ function ShipmentDetailsPage() {
                 </p>
               </div>
 
-              <Link
-                to="cargo"
-                className="btn btn-sm btn-outline-primary"
-              >
-                Add Cargo
-              </Link>
+              {canAddCargo ? (
+                <Link to="cargo" className="cargo-detail-action">
+                  Add Cargo
+                </Link>
+              ) : null}
             </div>
 
             {cargoDetails.length === 0 ? (
@@ -348,16 +348,16 @@ function ShipmentDetailsPage() {
                 </h3>
 
                 <p className="text-secondary mb-3">
-                  Add cargo weight, volume and handling
-                  information for this shipment.
+                  {canAddCargo
+                    ? 'Add cargo weight, volume and handling information for this shipment.'
+                    : 'Cargo changes are locked after the shipment enters transit.'}
                 </p>
 
-                <Link
-                  to="cargo"
-                  className="btn btn-primary"
-                >
-                  Add First Cargo Item
-                </Link>
+                {canAddCargo ? (
+                  <Link to="cargo" className="cargo-detail-action cargo-detail-action-primary">
+                    Add First Cargo Item
+                  </Link>
+                ) : null}
               </div>
             ) : (
               <>
@@ -386,8 +386,8 @@ function ShipmentDetailsPage() {
                 </div>
 
                 <div className="table-responsive">
-                  <table className="table table-hover align-middle mb-0">
-                    <thead className="table-light">
+                  <table className="table cargo-detail-table align-middle mb-0">
+                    <thead>
                       <tr>
                         <th>Cargo</th>
                         <th>Type</th>
@@ -468,53 +468,76 @@ function ShipmentDetailsPage() {
         </div>
 
         <div className="col-12 col-lg-4">
-          <div className="card shadow-sm mb-4">
-            <div className="card-header bg-body">
+          <div className="card cargo-detail-card cargo-payment-card mb-4">
+            <div className="card-header">
+              <h2 className="h5 mb-0">Payment Details</h2>
+            </div>
+
+            <div className="card-body">
+              {paymentDetails ? (
+                <>
+                  <div className="d-flex justify-content-between mb-2">
+                    <span className="text-secondary">Base amount</span>
+                    <span>{formatCurrency(paymentDetails.baseAmount)}</span>
+                  </div>
+                  <div className="d-flex justify-content-between mb-2">
+                    <span className="text-secondary">Charges</span>
+                    <span>{formatCurrency(paymentDetails.charges)}</span>
+                  </div>
+                  <div className="d-flex justify-content-between mb-3">
+                    <span className="text-secondary">Tax (18%)</span>
+                    <span>{formatCurrency(paymentDetails.taxes)}</span>
+                  </div>
+                  <div className="border-top pt-3 d-flex justify-content-between align-items-center">
+                    <span className="fw-semibold">Total payout amount</span>
+                    <span className="h5 text-primary mb-0">
+                      {formatCurrency(paymentDetails.estimatedAmount)}
+                    </span>
+                  </div>
+                  <p className="text-secondary small mt-3 mb-0">
+                    Calculated from shipment type, weight, volume, quantity,
+                    and special handling.
+                  </p>
+                  <RazorpayCheckoutButton
+                    shipmentId={shipmentId}
+                    disabled={paymentDetails.estimatedAmount <= 0}
+                    onPaid={() => setReloadKey((value) => value + 1)}
+                  />
+                  <p className="cargo-payment-security-note mb-0">
+                    Secure test payment. Your card details are handled by Razorpay.
+                  </p>
+                </>
+              ) : (
+                <p className="text-secondary mb-0">
+                  Payment amount will appear after cargo details are added.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="card cargo-detail-card mb-4">
+            <div className="card-header">
               <h2 className="h5 mb-0">
                 Shipment Actions
               </h2>
             </div>
 
             <div className="card-body d-grid gap-2">
-              <Link
-                to="cargo"
-                className="btn btn-primary"
-              >
-                Add Cargo
-              </Link>
+              {canAddCargo ? (
+                <Link to="cargo" className="cargo-detail-action cargo-detail-action-primary">
+                  Add Cargo
+                </Link>
+              ) : null}
 
               <Link
                 to="events"
-                className="btn btn-outline-secondary"
+                className="cargo-detail-action"
               >
                 View Event History
               </Link>
             </div>
           </div>
 
-          <div className="card shadow-sm">
-            <div className="card-header bg-body">
-              <h2 className="h5 mb-0">Timestamps</h2>
-            </div>
-
-            <div className="card-body">
-              <p className="text-secondary small mb-1">
-                Created At
-              </p>
-
-              <p className="mb-3">
-                {formatDateTime(shipment.createdAt)}
-              </p>
-
-              <p className="text-secondary small mb-1">
-                Last Updated
-              </p>
-
-              <p className="mb-0">
-                {formatDateTime(shipment.updatedAt)}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </main>

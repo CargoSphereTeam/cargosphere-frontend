@@ -4,6 +4,7 @@ import {
   clearAuthSession,
   getAuthSession,
   saveAuthSession,
+  updateStoredAuthUser,
 } from '../utils/authStorage.js';
 import AuthContext from './AuthContext.js';
 
@@ -24,15 +25,21 @@ function AuthProvider({ children }) {
     setSession(null);
   }, []);
 
+  const refreshUser = useCallback((userData) => {
+    const nextSession = updateStoredAuthUser(userData);
+    if (nextSession) setSession(nextSession);
+  }, []);
+
   const value = useMemo(
     () => ({
       user: session?.user ?? null,
       isAuthenticated: Boolean(session),
       login,
       logout,
+      refreshUser,
       hasRole: (role) => session?.user?.role === role,
     }),
-    [session, login, logout],
+    [session, login, logout, refreshUser],
   );
 
   return (

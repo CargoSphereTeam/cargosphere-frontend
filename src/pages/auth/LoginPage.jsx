@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../../context/useAuth.js';
 import { getApiErrorDetails } from '../../utils/apiError.js';
+import './authTheme.css';
 
 const INITIAL_FORM = {
   email: '',
@@ -91,23 +92,38 @@ function LoginPage() {
   }
 
   return (
-    <main className="min-vh-100 bg-light d-flex align-items-center py-5">
-      <div className="container">
-        <div className="row justify-content-center">
-          <div className="col-12 col-md-8 col-lg-5">
-            <div className="text-center mb-4">
-              <h1 className="h2 fw-bold mb-2">CargoSphere</h1>
-              <p className="text-secondary mb-0">
-                Cargo and shipment management portal
-              </p>
+    <main className="cargo-auth">
+      <div className="cargo-auth-orbit" />
+      <Link to="/" className="cargo-auth-brand">
+        <span>C</span> CargoSphere
+      </Link>
+      <div className="container cargo-auth-container">
+        <div className="row g-0 cargo-auth-shell">
+          <div className="col-lg-6 cargo-auth-visual">
+            <span className="cargo-auth-label">SECURE LOGISTICS WORKSPACE</span>
+            <h1>Move freight.<br /><em>Stay in control.</em></h1>
+            <p>One precise view across cargo, documents, payments, and every operational milestone.</p>
+            <div className="cargo-auth-route-card">
+              <div><small>ORIGIN</small><strong>Pune</strong></div>
+              <div className="cargo-auth-route-line"><i /></div>
+              <div className="text-end"><small>DESTINATION</small><strong>Mumbai</strong></div>
             </div>
+            <div className="cargo-auth-stat-row">
+              <div><small>DOCUMENTS</small><strong>5 / 5</strong><span>Verified</span></div>
+              <div><small>PAYMENT</small><strong>₹967.25</strong><span>Cleared</span></div>
+            </div>
+          </div>
 
-            <div className="card border-0 shadow-sm">
+          <div className="col-12 col-lg-6 cargo-auth-form-column">
+            <div className="cargo-auth-mobile-brand">CargoSphere</div>
+
+            <div className="card cargo-auth-card">
               <div className="card-body p-4 p-lg-5">
                 <div className="mb-4">
-                  <h2 className="h4 mb-2">Sign in</h2>
-                  <p className="text-secondary mb-0">
-                    Enter your registered CargoSphere credentials.
+                  <span className="cargo-auth-step">WELCOME BACK</span>
+                  <h2 className="mb-2">Sign in to CargoSphere</h2>
+                  <p className="cargo-auth-muted mb-0">
+                    Enter your credentials to continue to your workspace.
                   </p>
                 </div>
 
@@ -183,7 +199,7 @@ function LoginPage() {
 
                   <button
                     type="submit"
-                    className="btn btn-primary w-100"
+                    className="cargo-auth-submit w-100"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
@@ -199,11 +215,16 @@ function LoginPage() {
                     )}
                   </button>
                 </form>
+
+                <p className="text-center cargo-auth-muted mt-4 mb-0">
+                  New to CargoSphere?{' '}
+                  <Link to="/register">Create an account</Link>
+                </p>
               </div>
             </div>
 
-            <p className="text-center text-secondary small mt-4 mb-0">
-              Use the account assigned by your CargoSphere administrator.
+            <p className="text-center cargo-auth-muted small mt-4 mb-0">
+              Protected by CargoSphere secure access.
             </p>
           </div>
         </div>

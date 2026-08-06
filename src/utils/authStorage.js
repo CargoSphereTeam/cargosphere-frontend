@@ -95,6 +95,18 @@ function getAuthorizationHeader() {
   return `${session.tokenType} ${session.token}`;
 }
 
+function updateStoredAuthUser(userData) {
+  const session = getAuthSession();
+  if (!session) return null;
+
+  const nextSession = {
+    ...session,
+    user: { ...session.user, ...userData },
+  };
+  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextSession));
+  return nextSession;
+}
+
 export {
   AUTH_STORAGE_KEY,
   SUPPORTED_ROLES,
@@ -102,4 +114,5 @@ export {
   getAuthSession,
   getAuthorizationHeader,
   saveAuthSession,
+  updateStoredAuthUser,
 };

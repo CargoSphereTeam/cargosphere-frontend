@@ -4,12 +4,14 @@ import {
   Routes,
 } from 'react-router-dom';
 import LoginPage from './pages/auth/LoginPage.jsx';
+import RegisterPage from './pages/auth/RegisterPage.jsx';
 import AccessDeniedPage from './pages/common/AccessDeniedPage.jsx';
 import NotFoundPage from './pages/common/NotFoundPage.jsx';
+import HomePage from './pages/home/HomePage.jsx';
+import ClientProfilePage from './pages/client/ClientProfilePage.jsx';
 import AdminShipmentProcessingPage from './pages/admin/AdminShipmentProcessingPage.jsx';
 import GuestRoute from './routes/GuestRoute.jsx';
 import ProtectedRoute from './routes/ProtectedRoute.jsx';
-import RoleHomeRedirect from './routes/RoleHomeRedirect.jsx';
 import RoleRoute from './routes/RoleRoute.jsx';
 import ShipmentRoutes from './routes/ShipmentRoutes.jsx';
 
@@ -17,15 +19,15 @@ import ShipmentRoutes from './routes/ShipmentRoutes.jsx';
 function App() {
   return (
     <Routes>
+      <Route path="/" element={<HomePage />} />
+
       <Route element={<GuestRoute />}>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
       </Route>
 
-      <Route path="/403" element={<AccessDeniedPage />} />
-
       <Route element={<ProtectedRoute />}>
-        <Route index element={<RoleHomeRedirect />} />
-
+        <Route path="/403" element={<AccessDeniedPage />} />
         <Route
           element={
             <RoleRoute allowedRoles={['ROLE_ADMIN']} />
@@ -55,6 +57,7 @@ function App() {
             <RoleRoute allowedRoles={['ROLE_CLIENT']} />
           }
         >
+          <Route path="/client/profile" element={<ClientProfilePage />} />
           <Route
             path="/client/shipments/*"
             element={<ShipmentRoutes />}

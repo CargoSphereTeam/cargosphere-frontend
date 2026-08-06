@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import useDocuments from '../hooks/useDocuments.js';
-import {
-  formatDateTime,
-  formatDocumentType,
-} from '../utils/documentUtils.js';
+import { formatDocumentType } from '../utils/documentUtils.js';
 import DocumentStatusBadge from './DocumentStatusBadge.jsx';
+
+const REQUIRED_DOCUMENT_TYPES = [
+  'COMMERCIAL_INVOICE',
+  'PACKING_LIST',
+  'SHIPPING_INSTRUCTIONS',
+  'INSURANCE_DOCUMENT',
+  'CUSTOMS_DECLARATION',
+];
 
 function DocumentVerificationStep({ shipmentId, onCompleted }) {
   const {
@@ -12,11 +18,57 @@ function DocumentVerificationStep({ shipmentId, onCompleted }) {
     error,
     loading,
     updatingDocumentId,
+    creatingDocuments,
+    addRequiredDocuments,
     loadDocuments,
     updateVerification,
   } = useDocuments(shipmentId);
-  const [remarksByDocument, setRemarksByDocument] = useState({});
-  const [successMessage, setSuccessMessage] = useState('');
+  const [reviewedDocumentIds, setReviewedDocumentIds] = useState(() => new Set());
+  const autoCreateAttemptedRef = useRef(false);
+
+  const existingDocumentTypes = new Set(
+    documents.map((document) => document.documentType),
+  );
+  const missingDocumentTypes = REQUIRED_DOCUMENT_TYPES.filter(
+    (documentType) => !existingDocumentTypes.has(documentType),
+  );
+  const orderedDocuments = REQUIRED_DOCUMENT_TYPES.map((documentType) =>
+    documents.find((document) => document.documentType === documentType),
+  ).filter(Boolean);
+  const resolvedStatuses = new Set(['VERIFIED', 'NOT_APPLICABLE']);
+  const currentDocument = orderedDocuments.find(
+    (document) =>
+      !resolvedStatuses.has(document.verificationStatus) &&
+      !reviewedDocumentIds.has(document.id),
+  );
+  const completedCount = orderedDocuments.filter(
+    (document) =>
+      resolvedStatuses.has(document.verificationStatus) ||
+      reviewedDocumentIds.has(document.id),
+  ).length;
+  const rejectedDocuments = orderedDocuments.filter(
+    (document) => document.verificationStatus === 'REJECTED',
+  );
+
+  useEffect(() => {
+    if (
+      loading ||
+      creatingDocuments ||
+      missingDocumentTypes.length === 0 ||
+      autoCreateAttemptedRef.current
+    ) return;
+
+    autoCreateAttemptedRef.current = true;
+    void addRequiredDocuments(missingDocumentTypes).then((updatedDocuments) => {
+      if (updatedDocuments) onCompleted?.(updatedDocuments);
+    });
+  }, [
+    addRequiredDocuments,
+    creatingDocuments,
+    loading,
+    missingDocumentTypes,
+    onCompleted,
+  ]);
 
 
   async function handleVerification(document, verificationStatus) {
@@ -27,11 +79,16 @@ function DocumentVerificationStep({ shipmentId, onCompleted }) {
     const updatedDocument = await updateVerification(
       document.id,
       verificationStatus,
-      remarksByDocument[document.id] ?? document.remarks ?? '',
+      null,
     );
 
     if (updatedDocument) {
-      setSuccessMessage(
+      setReviewedDocumentIds((current) => {
+        const next = new Set(current);
+        next.add(document.id);
+        return next;
+      });
+      toast.success(
         `${formatDocumentType(document.documentType)} marked as ${verificationStatus}.`,
       );
       onCompleted?.(updatedDocument);
@@ -60,100 +117,69 @@ function DocumentVerificationStep({ shipmentId, onCompleted }) {
         </div>
 
         {error && <div className="alert alert-danger">{error}</div>}
-        {successMessage && (
-          <div className="alert alert-success">{successMessage}</div>
-        )}
-
-        {loading ? (
+        {loading || creatingDocuments ? (
           <div className="text-center py-5">
             <div className="spinner-border" role="status" aria-label="Loading" />
-            <p className="mt-3 mb-0">Loading documents...</p>
+            <p className="mt-3 mb-0">
+              {creatingDocuments ? 'Preparing required documents...' : 'Loading documents...'}
+            </p>
           </div>
-        ) : error ? null : documents.length === 0 ? (
+        ) : documents.length === 0 ? (
           <div className="alert alert-info mb-0">
             No document records are available for this shipment.
           </div>
+        ) : currentDocument ? (
+          <article className="border rounded p-4">
+            <div className="small text-secondary mb-1">
+              Document {completedCount + 1} of {REQUIRED_DOCUMENT_TYPES.length}
+            </div>
+            <div className="d-flex flex-wrap justify-content-between gap-3 mb-4">
+              <h3 className="h5 mb-0">
+                {formatDocumentType(currentDocument.documentType)}
+              </h3>
+              <DocumentStatusBadge status={currentDocument.verificationStatus} />
+            </div>
+            <p className="text-secondary">
+              Review this document and approve it to open the next document.
+            </p>
+            <div className="d-flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn btn-success"
+                disabled={updatingDocumentId !== null}
+                onClick={() => handleVerification(currentDocument, 'VERIFIED')}
+              >
+                {updatingDocumentId === currentDocument.id
+                  ? 'Approving...'
+                  : 'Approve Document'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-danger"
+                disabled={updatingDocumentId !== null}
+                onClick={() => handleVerification(currentDocument, 'REJECTED')}
+              >
+                Reject Document
+              </button>
+            </div>
+          </article>
+        ) : rejectedDocuments.length > 0 ? (
+          <div className="alert alert-warning mb-0">
+            <p className="mb-2">
+              Review complete. {rejectedDocuments.length} document
+              {rejectedDocuments.length === 1 ? '' : 's'} rejected.
+            </p>
+            <button
+              type="button"
+              className="btn btn-outline-primary"
+              onClick={() => setReviewedDocumentIds(new Set())}
+            >
+              Review Rejected Documents
+            </button>
+          </div>
         ) : (
-          <div className="vstack gap-3">
-            {documents.map((document) => {
-              const isUpdating = updatingDocumentId === document.id;
-
-              return (
-                <article className="border rounded p-3" key={document.id}>
-                  <div className="d-flex flex-wrap justify-content-between gap-3 mb-3">
-                    <div>
-                      <h3 className="h6 mb-2">
-                        {formatDocumentType(document.documentType)}
-                      </h3>
-                      <div className="d-flex flex-wrap gap-2">
-                        <span
-                          className={`badge ${
-                            document.required
-                              ? 'bg-danger-subtle text-danger-emphasis'
-                              : 'bg-secondary-subtle text-secondary-emphasis'
-                          }`}
-                        >
-                          {document.required ? 'Required' : 'Optional'}
-                        </span>
-                        <DocumentStatusBadge
-                          status={document.verificationStatus}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="small text-secondary text-md-end">
-                      <div>Verified by: {document.verifiedBy ?? '-'}</div>
-                      <div>Verified at: {formatDateTime(document.verifiedAt)}</div>
-                    </div>
-                  </div>
-
-                  <label
-                    className="form-label"
-                    htmlFor={`document-remarks-${document.id}`}
-                  >
-                    Remarks
-                  </label>
-                  <textarea
-                    id={`document-remarks-${document.id}`}
-                    className="form-control"
-                    rows="2"
-                    maxLength="500"
-                    value={
-                      remarksByDocument[document.id] ?? document.remarks ?? ''
-                    }
-                    disabled={isUpdating}
-                    onChange={(event) =>
-                      setRemarksByDocument((currentRemarks) => ({
-                        ...currentRemarks,
-                        [document.id]: event.target.value,
-                      }))
-                    }
-                  />
-                  <div className="form-text">
-                    Maximum 500 characters.
-                  </div>
-
-                  <div className="d-flex flex-wrap gap-2 mt-3">
-                    <button
-                      type="button"
-                      className="btn btn-success"
-                      disabled={updatingDocumentId !== null}
-                      onClick={() => handleVerification(document, 'VERIFIED')}
-                    >
-                      {isUpdating ? 'Saving...' : 'Verify'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline-danger"
-                      disabled={updatingDocumentId !== null}
-                      onClick={() => handleVerification(document, 'REJECTED')}
-                    >
-                      {isUpdating ? 'Saving...' : 'Reject'}
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
+          <div className="alert alert-success mb-0">
+            All required documents have been approved.
           </div>
         )}
       </div>

@@ -2,6 +2,15 @@
 
 const DOCUMENT_API_PATH = "/api/documents";
 
+export async function createDocument(documentData) {
+  const response = await httpClient.post(
+    DOCUMENT_API_PATH,
+    documentData,
+  );
+
+  return response.data;
+}
+
 export async function getDocumentsByShipmentId(shipmentId) {
   const response = await httpClient.get(
     `${DOCUMENT_API_PATH}/shipment/${shipmentId}`

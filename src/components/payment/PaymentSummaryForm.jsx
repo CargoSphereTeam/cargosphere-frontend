@@ -1,6 +1,8 @@
 function PaymentSummaryForm({
   formData,
   setFormData,
+  finalAmount,
+  balanceAmount,
 }) {
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -46,6 +48,21 @@ function PaymentSummaryForm({
                 value={formData.estimatedAmount}
                 onChange={handleChange}
               />
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="finalAmount">
+                Final Amount
+              </label>
+              <input id="finalAmount" className="form-control" value={finalAmount.toFixed(2)} readOnly />
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label" htmlFor="balanceAmount">
+                Balance Amount
+              </label>
+              <input id="balanceAmount" className="form-control" value={balanceAmount.toFixed(2)} readOnly />
+              <div className="form-text">This becomes zero after verified client payment.</div>
             </div>
 
             <div className="col-md-6">
@@ -143,9 +160,10 @@ function PaymentSummaryForm({
                 min="0"
                 step="0.01"
                 className="form-control"
-                value={formData.paidAmount}
-                onChange={handleChange}
+                value="0.00"
+                readOnly
               />
+              <div className="form-text">Updated automatically by Razorpay verification.</div>
             </div>
 
             <div className="col-md-6">

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { addCargoDetails } from '../../api/shipmentApi.js';
+import './addCargoDetailsPage.css';
 
 const INITIAL_FORM_DATA = {
   cargoName: '',
@@ -172,6 +174,8 @@ function AddCargoDetailsPage() {
 
       await addCargoDetails(shipmentId, cargoData);
 
+      toast.success('Cargo added successfully.');
+
       setFormData(INITIAL_FORM_DATA);
       navigate('..', { relative: 'path' });
     } catch (requestError) {
@@ -182,20 +186,22 @@ function AddCargoDetailsPage() {
   };
 
   return (
-    <main className="container py-4">
-      <div className="mb-4">
+    <main className="cargo-add-page">
+      <div className="container cargo-add-container">
+      <div className="cargo-add-heading">
         <button
           type="button"
-          className="btn btn-link p-0 mb-2 text-decoration-none"
+          className="cargo-details-back"
           onClick={handleBackToDetails}
           disabled={submitting}
         >
           ← Back to Shipment Details
         </button>
 
-        <h1 className="h2 mb-1">Add Cargo Details</h1>
+        <span className="cargo-page-label d-block mt-4">CARGO MANIFEST</span>
+        <h1>Add cargo details</h1>
 
-        <p className="text-secondary">
+        <p>
           Add cargo information to shipment #{shipmentId}.
         </p>
       </div>
@@ -206,8 +212,22 @@ function AddCargoDetailsPage() {
         </div>
       )}
 
-      <div className="card shadow-sm">
-        <div className="card-body p-4">
+      <div className="cargo-add-layout">
+        <aside className="cargo-add-aside">
+          <span className="cargo-add-label">ACCURATE CARGO DATA</span>
+          <h2>Details drive every decision.</h2>
+          <p>Weight, volume, quantity, and handling requirements determine container capacity and pricing.</p>
+          <div className="cargo-add-metric"><span>kg</span><div><strong>Weight</strong><small>Required for capacity checks</small></div></div>
+          <div className="cargo-add-metric"><span>m³</span><div><strong>Volume</strong><small>Improves space allocation</small></div></div>
+          <div className="cargo-add-metric"><span>!</span><div><strong>Handling</strong><small>Flags special precautions</small></div></div>
+        </aside>
+
+      <div className="card cargo-add-card">
+        <div className="card-body">
+          <div className="cargo-add-section-heading">
+            <span>CARGO INFORMATION</span>
+            <small>Shipment #{shipmentId}</small>
+          </div>
           <form onSubmit={handleSubmit}>
             <div className="row g-3">
               <div className="col-12 col-md-6">
@@ -339,8 +359,8 @@ function AddCargoDetailsPage() {
               </div>
 
               <div className="col-12">
-                <div className="d-flex flex-column flex-sm-row gap-3">
-                  <div className="form-check">
+                <div className="cargo-handling-options">
+                  <div className={`form-check ${formData.fragile ? 'selected' : ''}`}>
                     <input
                       id="fragile"
                       name="fragile"
@@ -359,7 +379,7 @@ function AddCargoDetailsPage() {
                     </label>
                   </div>
 
-                  <div className="form-check">
+                  <div className={`form-check ${formData.hazardous ? 'selected hazardous' : ''}`}>
                     <input
                       id="hazardous"
                       name="hazardous"
@@ -384,7 +404,7 @@ function AddCargoDetailsPage() {
             <div className="d-flex justify-content-end gap-2 mt-4">
               <button
                 type="button"
-                className="btn btn-outline-secondary"
+                className="cargo-add-cancel"
                 onClick={handleBackToDetails}
                 disabled={submitting}
               >
@@ -393,7 +413,7 @@ function AddCargoDetailsPage() {
 
               <button
                 type="submit"
-                className="btn btn-primary"
+                className="cargo-add-submit"
                 disabled={submitting}
               >
                 {submitting ? (
@@ -411,6 +431,8 @@ function AddCargoDetailsPage() {
             </div>
           </form>
         </div>
+      </div>
+      </div>
       </div>
     </main>
   );

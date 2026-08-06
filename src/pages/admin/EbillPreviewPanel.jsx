@@ -1,3 +1,5 @@
+import './ebillPreviewPanel.css';
+
 function formatLabel(key) {
   return key
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
@@ -46,10 +48,10 @@ function DetailGrid({ data }) {
   }
 
   return (
-    <div className="row g-3">
+    <div className="row g-3 cargo-ebill-detail-grid">
       {entries.map(([key, value]) => (
         <div className="col-md-6 col-xl-4" key={key}>
-          <div className="border rounded p-3 h-100">
+          <div className="cargo-ebill-detail h-100">
             <div className="small text-secondary mb-1">
               {formatLabel(key)}
             </div>
@@ -70,12 +72,12 @@ function CollectionSection({
   emptyMessage,
 }) {
   return (
-    <section className="card shadow-sm">
+    <section className="card cargo-ebill-section-card">
       <div className="card-body">
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h3 className="h5 mb-0">{title}</h3>
 
-          <span className="badge text-bg-secondary">
+          <span className="cargo-ebill-count">
             {items?.length ?? 0}
           </span>
         </div>
@@ -84,7 +86,7 @@ function CollectionSection({
           <div className="d-grid gap-3">
             {items.map((item, index) => (
               <div
-                className="border rounded p-3 bg-body-tertiary"
+                className="cargo-ebill-collection-item"
                 key={
                   item.documentId ??
                   item.paymentId ??
@@ -119,25 +121,19 @@ function ReadinessSummary({ readiness }) {
   ];
 
   return (
-    <section className="card shadow-sm">
+    <section className="card cargo-ebill-section-card">
       <div className="card-body">
         <h3 className="h5 mb-3">Generation readiness</h3>
 
         <div className="row g-3">
           {readinessItems.map(([label, ready]) => (
             <div className="col-md-6 col-xl" key={label}>
-              <div className="border rounded p-3 h-100">
+              <div className={`cargo-ebill-readiness h-100 ${ready ? 'ready' : ''}`}>
                 <div className="small text-secondary mb-2">
                   {label}
                 </div>
 
-                <span
-                  className={`badge ${
-                    ready
-                      ? 'text-bg-success'
-                      : 'text-bg-warning'
-                  }`}
-                >
+                <span className="cargo-ebill-readiness-status">
                   {ready ? 'Ready' : 'Pending'}
                 </span>
               </div>
@@ -168,16 +164,20 @@ function EbillPreviewPanel({ preview, onClose }) {
     preview?.shipment?.shipmentNumber ?? 'Shipment';
 
   return (
-    <section className="mt-4">
-      <div className="card shadow-sm border-primary">
+    <section className="cargo-ebill-preview">
+      <div className="card cargo-ebill-hero-card">
         <div className="card-body">
-          <div className="d-flex flex-column flex-md-row justify-content-between gap-3 mb-4">
+          <div className="cargo-ebill-hero-heading">
             <div>
-              <div className="text-primary fw-semibold mb-1">
+              <div className="cargo-ebill-live-label">
+                <i />
                 Live eBill Preview
               </div>
 
-              <h2 className="h4 mb-1">{shipmentNumber}</h2>
+              <h2>CargoSphere eBill</h2>
+              <div className="cargo-ebill-shipment-number">
+                {shipmentNumber}
+              </div>
 
               <p className="text-secondary mb-0">
                 Review the live shipment information before
@@ -187,15 +187,15 @@ function EbillPreviewPanel({ preview, onClose }) {
 
             <button
               type="button"
-              className="btn btn-outline-secondary align-self-start"
+              className="cargo-ebill-close"
               onClick={onClose}
             >
               Close Preview
             </button>
           </div>
 
-          <div className="d-grid gap-4">
-            <section>
+          <div className="cargo-ebill-primary-grid">
+            <section className="cargo-ebill-info-section">
               <h3 className="h5 mb-3">
                 Shipment information
               </h3>
@@ -203,9 +203,7 @@ function EbillPreviewPanel({ preview, onClose }) {
               <DetailGrid data={preview?.shipment} />
             </section>
 
-            <hr className="my-0" />
-
-            <section>
+            <section className="cargo-ebill-info-section">
               <h3 className="h5 mb-3">
                 Client information
               </h3>
@@ -216,7 +214,7 @@ function EbillPreviewPanel({ preview, onClose }) {
         </div>
       </div>
 
-      <div className="d-grid gap-4 mt-4">
+      <div className="cargo-ebill-sections">
         <ReadinessSummary readiness={preview?.readiness} />
 
         <CollectionSection

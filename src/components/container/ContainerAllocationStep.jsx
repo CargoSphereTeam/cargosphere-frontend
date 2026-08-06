@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import {
   createAllocation,
   getAllocationsByShipmentId,
@@ -101,7 +102,6 @@ function ContainerAllocationStep({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -261,7 +261,6 @@ function ContainerAllocationStep({
     }
 
     setError('');
-    setSuccessMessage('');
 
     if (!shipmentId) {
       setError('Shipment ID is required.');
@@ -307,7 +306,7 @@ function ContainerAllocationStep({
       await refreshAllocations();
 
       setFormData(INITIAL_FORM_DATA);
-      setSuccessMessage(
+      toast.success(
         `${createdAllocation.containerTypeName} allocated successfully.`,
       );
 
@@ -395,12 +394,6 @@ function ContainerAllocationStep({
       {error && (
         <div className="alert alert-danger" role="alert">
           {error}
-        </div>
-      )}
-
-      {successMessage && (
-        <div className="alert alert-success" role="status">
-          {successMessage}
         </div>
       )}
 

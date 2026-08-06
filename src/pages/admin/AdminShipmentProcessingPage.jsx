@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   continueShipmentProcessing,
   downloadEbillPdf,
@@ -12,17 +13,21 @@ import {
   formatProcessingStage,
 } from '../../constants/processingStages.js';
 import { getApiErrorDetails } from '../../utils/apiError.js';
+import ContainerAllocationStep from '../../components/container/ContainerAllocationStep.jsx';
+import PaymentSummaryStep from '../../components/payment/PaymentSummaryStep.jsx';
+import { CargoVerificationStep } from '../../features/cargo-verification/index.js';
+import { DocumentVerificationStep } from '../../features/documents/index.js';
 import EbillPreviewPanel from './EbillPreviewPanel.jsx';
+import './adminShipmentProcessingPage.css';
 
 function ReadinessItem({ label, ready }) {
   return (
-    <div className="d-flex justify-content-between align-items-center border rounded p-3">
-      <span className="fw-semibold">{label}</span>
+    <div className={`cargo-readiness-item ${ready ? 'ready' : ''}`}>
+      <span className="cargo-readiness-icon">{ready ? '✓' : '·'}</span>
+      <span>{label}</span>
 
       <span
-        className={`badge ${
-          ready ? 'text-bg-success' : 'text-bg-warning'
-        }`}
+        className="cargo-readiness-status"
       >
         {ready ? 'Ready' : 'Pending'}
       </span>
@@ -48,7 +53,6 @@ function AdminShipmentProcessingPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
   const [ebillPreview, setEbillPreview] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
@@ -96,13 +100,12 @@ function AdminShipmentProcessingPage() {
   async function runProcessingAction(action, message) {
     setActionLoading(true);
     setError('');
-    setSuccessMessage('');
 
     try {
       await action();
       setEbillPreview(null);
       await refreshReadiness();
-      setSuccessMessage(message);
+      toast.success(message);
     } catch (requestError) {
       const apiError = getApiErrorDetails(
         requestError,
@@ -122,6 +125,64 @@ function AdminShipmentProcessingPage() {
     );
   }
 
+  useEffect(() => {
+    if (readiness?.processingStage !== 'PAYMENT_CONFIRMATION'
+        || readiness.paymentReady) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(async () => {
+      try {
+        const response = await getProcessingReadiness(shipmentId);
+        if (response.paymentReady) {
+          toast.success('Client payment received and verified. Advancing the shipment.');
+          await continueShipmentProcessing(shipmentId);
+          const advancedResponse = await getProcessingReadiness(shipmentId);
+          setReadiness(advancedResponse);
+          toast.success('Payment confirmed. Shipment advanced to eBill preparation.');
+          return;
+        }
+        setReadiness(response);
+      } catch {
+        // Keep the page stable during a temporary polling failure.
+      }
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [readiness?.paymentReady, readiness?.processingStage, shipmentId]);
+
+  async function handleContainerAllocated() {
+    try {
+      await refreshReadiness();
+      setError('');
+      toast.success(
+        'Container allocated. Shipment is ready to continue.',
+      );
+    } catch (requestError) {
+      const apiError = getApiErrorDetails(
+        requestError,
+        'Container was allocated, but processing readiness could not be refreshed.',
+      );
+
+      setError(apiError.message);
+    }
+  }
+
+  async function handleStageCompleted(message) {
+    try {
+      await refreshReadiness();
+      setError('');
+      toast.success(message);
+    } catch (requestError) {
+      const apiError = getApiErrorDetails(
+        requestError,
+        'The stage was updated, but readiness could not be refreshed.',
+      );
+
+      setError(apiError.message);
+    }
+  }
+
   function handleContinueProcessing() {
     runProcessingAction(
       () => continueShipmentProcessing(shipmentId),
@@ -132,12 +193,11 @@ function AdminShipmentProcessingPage() {
   async function handlePreviewEbill() {
     setPreviewLoading(true);
     setError('');
-    setSuccessMessage('');
 
     try {
       const response = await getEbillPreview(shipmentId);
       setEbillPreview(response);
-      setSuccessMessage(
+      toast.success(
         'Live eBill preview loaded successfully.',
       );
     } catch (requestError) {
@@ -162,7 +222,6 @@ function AdminShipmentProcessingPage() {
   async function handleDownloadEbill() {
     setActionLoading(true);
     setError('');
-    setSuccessMessage('');
 
     try {
       const { blob, fileName } =
@@ -179,7 +238,7 @@ function AdminShipmentProcessingPage() {
 
       URL.revokeObjectURL(objectUrl);
 
-      setSuccessMessage('eBill PDF downloaded successfully.');
+      toast.success('eBill PDF downloaded successfully.');
     } catch (requestError) {
       const apiError = getApiErrorDetails(
         requestError,
@@ -207,18 +266,19 @@ function AdminShipmentProcessingPage() {
     readiness && getCurrentRequirementReady(readiness);
 
   return (
-    <main className="container py-4">
+    <main className="cargo-process-page">
       <Link
         to="/admin/shipments"
-        className="btn btn-link p-0 mb-3 text-decoration-none"
+        className="cargo-details-back"
       >
         ← Back to shipments
       </Link>
 
-      <div className="mb-4">
-        <h1 className="h2 mb-1">Shipment Processing</h1>
+      <div className="cargo-process-heading">
+        <span className="cargo-page-label d-block mt-4">ADMIN WORKFLOW</span>
+        <h1>Shipment processing</h1>
 
-        <p className="text-secondary mb-0">
+        <p>
           Review and advance shipment {shipmentId} through the
           administrator workflow.
         </p>
@@ -227,12 +287,6 @@ function AdminShipmentProcessingPage() {
       {error ? (
         <div className="alert alert-danger" role="alert">
           {error}
-        </div>
-      ) : null}
-
-      {successMessage ? (
-        <div className="alert alert-success" role="alert">
-          {successMessage}
         </div>
       ) : null}
 
@@ -248,9 +302,49 @@ function AdminShipmentProcessingPage() {
 
       {!loading && readiness ? (
         <>
-          <div className="row g-4">
+          {processingStage === 'CONTAINER_ALLOCATION' ? (
+            <div className="cargo-process-stage-panel">
+              <ContainerAllocationStep
+                shipmentId={shipmentId}
+                onCompleted={handleContainerAllocated}
+              />
+            </div>
+          ) : null}
+
+          {processingStage === 'CARGO_VERIFICATION' ? (
+            <div className="cargo-process-stage-panel">
+              <CargoVerificationStep
+                shipmentId={shipmentId}
+                onCompleted={() =>
+                  handleStageCompleted(
+                    'Cargo approved. Continue with document verification.',
+                  )
+                }
+              />
+            </div>
+          ) : null}
+
+          {processingStage === 'DOCUMENT_VERIFICATION' ? (
+            <div className="cargo-process-stage-panel">
+              <DocumentVerificationStep
+                shipmentId={shipmentId}
+                onCompleted={() => refreshReadiness()}
+              />
+            </div>
+          ) : null}
+
+          {processingStage === 'PAYMENT_CONFIRMATION' ? (
+            <div className="cargo-process-stage-panel">
+              <PaymentSummaryStep
+                shipmentId={shipmentId}
+                onCompleted={() => refreshReadiness()}
+              />
+            </div>
+          ) : null}
+
+          <div className="row g-4 cargo-process-layout">
           <div className="col-lg-8">
-            <div className="card shadow-sm">
+            <div className="card cargo-process-card cargo-progress-card">
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-start mb-4">
                   <div>
@@ -263,12 +357,12 @@ function AdminShipmentProcessingPage() {
                     </p>
                   </div>
 
-                  <span className="badge text-bg-primary">
+                  <span className="cargo-stage-badge">
                     {formatProcessingStage(processingStage)}
                   </span>
                 </div>
 
-                <div className="d-grid gap-3">
+                <div className="cargo-readiness-list">
                   <ReadinessItem
                     label="Container allocation"
                     ready={readiness.containerReady}
@@ -291,7 +385,10 @@ function AdminShipmentProcessingPage() {
 
                   <ReadinessItem
                     label="eBill generation"
-                    ready={readiness.ebillReady}
+                    ready={
+                      readiness.ebillReady ||
+                      processingStage === 'EBILL_GENERATED'
+                    }
                   />
                 </div>
               </div>
@@ -299,7 +396,7 @@ function AdminShipmentProcessingPage() {
           </div>
 
           <div className="col-lg-4">
-            <div className="card shadow-sm mb-4">
+            <div className="card cargo-process-card mb-4">
               <div className="card-body">
                 <h2 className="h5">Processing actions</h2>
 
@@ -312,7 +409,7 @@ function AdminShipmentProcessingPage() {
                       disabled={actionLoading}
                       onClick={handleStartProcessing}
                     >
-                      Start Processing
+                      Approve &amp; Start Processing
                     </button>
                   ) : null}
 
@@ -380,7 +477,7 @@ function AdminShipmentProcessingPage() {
               </div>
             </div>
 
-            <div className="card shadow-sm">
+            <div className="card cargo-process-card">
               <div className="card-body">
                 <h2 className="h5">Blocking reasons</h2>
 

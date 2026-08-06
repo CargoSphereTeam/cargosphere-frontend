@@ -1,5 +1,7 @@
 const STATUS_CLASSES = {
   PENDING: 'bg-warning text-dark',
+  DRAFT: 'bg-secondary',
+  APPROVED: 'bg-info text-dark',
   CONFIRMED: 'bg-success',
   REJECTED: 'bg-danger',
 };

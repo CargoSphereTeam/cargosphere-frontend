@@ -45,6 +45,15 @@ async function getProcessingReadiness(shipmentId) {
   return response.data;
 }
 
+async function saveCargoVerification(shipmentId, verificationData) {
+  const response = await httpClient.put(
+    `${ADMIN_SHIPMENT_API_PATH}/${shipmentId}/cargo-verification`,
+    verificationData,
+  );
+
+  return response.data;
+}
+
 async function getEbillPreview(shipmentId) {
   const response = await httpClient.get(
     `${ADMIN_SHIPMENT_API_PATH}/${shipmentId}/ebill-preview`,
@@ -91,5 +100,6 @@ export {
   getEbillPreview,
   getProcessingQueue,
   getProcessingReadiness,
+  saveCargoVerification,
   startShipmentProcessing,
 };
