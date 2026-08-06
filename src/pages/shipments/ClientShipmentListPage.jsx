@@ -1,46 +1,89 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  getAllShipments,
-  getShipmentsByClientUserId,
-} from '../../api/shipmentApi.js';
+import { getShipmentsByClientUserId } from '../../api/shipmentApi.js';
 import ShipmentStatusBadge from '../../components/shipment/ShipmentStatusBadge.jsx';
-import useAuth from '../../context/useAuth.js';
-import useShipmentBasePath from '../../hooks/useShipmentBasePath.js';
-import { getApiErrorDetails } from '../../utils/apiError.js';
+
+function formatDateTime(value) {
+  if (!value) {
+    return 'Not available';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
 
 function formatDate(value) {
   if (!value) {
     return 'Not set';
   }
 
-  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
 
   return new Intl.DateTimeFormat('en-IN', {
     dateStyle: 'medium',
-  }).format(new Date(year, month - 1, day));
+  }).format(date);
 }
 
-function ShipmentListPage() {
-  const { user } = useAuth();
-  const shipmentBasePath = useShipmentBasePath();
+function getErrorMessage(requestError) {
+  const responseData = requestError.response?.data;
 
+  if (responseData?.message) {
+    return responseData.message;
+  }
+
+  const status = requestError.response?.status;
+
+  if (status === 401) {
+    return 'Your session is missing or invalid. Please sign in again.';
+  }
+
+  if (status === 403) {
+    return 'You are not allowed to view shipments for this client.';
+  }
+
+  if (status >= 500) {
+    return 'The shipment service is currently unavailable. Please try again later.';
+  }
+
+  return 'Unable to load your shipments. Please try again.';
+}
+
+function ClientShipmentListPage({ clientUserId }) {
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let isActive = true;
 
-    async function loadShipments() {
-      setLoading(true);
-      setError('');
+    async function loadClientShipments() {
+      if (!clientUserId || Number(clientUserId) < 1) {
+        setError(
+          'Authenticated client information is not available.',
+        );
+        setLoading(false);
+        return;
+      }
 
       try {
+        setLoading(true);
+        setError('');
+
         const shipmentData =
-          user.role === 'ROLE_ADMIN'
-            ? await getAllShipments()
-            : await getShipmentsByClientUserId(user.id);
+          await getShipmentsByClientUserId(clientUserId);
 
         if (isActive) {
           setShipments(
@@ -49,12 +92,7 @@ function ShipmentListPage() {
         }
       } catch (requestError) {
         if (isActive) {
-          const apiError = getApiErrorDetails(
-            requestError,
-            'Unable to load shipments. Please try again.',
-          );
-
-          setError(apiError.message);
+          setError(getErrorMessage(requestError));
           setShipments([]);
         }
       } finally {
@@ -64,39 +102,35 @@ function ShipmentListPage() {
       }
     }
 
-    loadShipments();
+    loadClientShipments();
 
     return () => {
       isActive = false;
     };
-  }, [user.id, user.role]);
+  }, [clientUserId, reloadKey]);
+
+  const handleRetry = () => {
+    setReloadKey((currentKey) => currentKey + 1);
+  };
 
   return (
     <main className="container py-4">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
-          <h1 className="h2 mb-1">Shipments</h1>
+          <h1 className="h2 mb-1">My Shipments</h1>
 
           <p className="text-secondary mb-0">
-            {user.role === 'ROLE_ADMIN'
-              ? 'View and manage all CargoSphere shipments.'
-              : 'View and manage your CargoSphere shipments.'}
+            View and manage shipments created for your account.
           </p>
         </div>
 
-        <Link to={`${shipmentBasePath}/new`} className="btn btn-primary">
+        <Link to="/shipments/new" className="btn btn-primary">
           Create Shipment
         </Link>
       </div>
 
-      {error ? (
-        <div className="alert alert-danger" role="alert">
-          {error}
-        </div>
-      ) : null}
-
-      <div className="card shadow-sm">
-        {loading ? (
+      {loading ? (
+        <div className="card shadow-sm">
           <div className="card-body text-center py-5">
             <div
               className="spinner-border text-primary"
@@ -108,25 +142,45 @@ function ShipmentListPage() {
             </div>
 
             <p className="text-secondary mt-3 mb-0">
-              Loading shipments...
+              Loading your shipments...
             </p>
           </div>
-        ) : shipments.length === 0 && !error ? (
+        </div>
+      ) : error ? (
+        <div className="alert alert-danger" role="alert">
+          <h2 className="h5 alert-heading">
+            Unable to load shipments
+          </h2>
+
+          <p>{error}</p>
+
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-danger"
+            onClick={handleRetry}
+          >
+            Retry
+          </button>
+        </div>
+      ) : shipments.length === 0 ? (
+        <div className="card shadow-sm">
           <div className="card-body text-center py-5">
             <h2 className="h5">No shipments found</h2>
 
             <p className="text-secondary mb-3">
-              Create the first shipment to begin tracking cargo.
+              Create your first shipment to begin managing cargo.
             </p>
 
             <Link
-              to={`${shipmentBasePath}/new`}
+              to="/shipments/new"
               className="btn btn-primary"
             >
               Create Shipment
             </Link>
           </div>
-        ) : (
+        </div>
+      ) : (
+        <div className="card shadow-sm">
           <div className="card-body p-0">
             <div className="table-responsive">
               <table className="table table-hover align-middle mb-0">
@@ -137,6 +191,7 @@ function ShipmentListPage() {
                     <th>Type</th>
                     <th>Status</th>
                     <th>Expected Delivery</th>
+                    <th>Created At</th>
                     <th className="text-end">Action</th>
                   </tr>
                 </thead>
@@ -150,7 +205,7 @@ function ShipmentListPage() {
 
                       <td>
                         {shipment.originLocation}
-                        {' \u2192 '}
+                        {' → '}
                         {shipment.destinationLocation}
                       </td>
 
@@ -168,9 +223,13 @@ function ShipmentListPage() {
                         )}
                       </td>
 
+                      <td>
+                        {formatDateTime(shipment.createdAt)}
+                      </td>
+
                       <td className="text-end">
                         <Link
-                          to={`${shipmentBasePath}/${shipment.id}`}
+                          to={`/shipments/${shipment.id}`}
                           className="btn btn-sm btn-outline-primary"
                         >
                           View Details
@@ -182,10 +241,10 @@ function ShipmentListPage() {
               </table>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </main>
   );
 }
 
-export default ShipmentListPage;
+export default ClientShipmentListPage;
