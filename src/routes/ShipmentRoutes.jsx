@@ -5,6 +5,7 @@ import ShipmentDetailsPage from '../pages/shipments/ShipmentDetailsPage.jsx';
 import ShipmentEventsPage from '../pages/shipments/ShipmentEventsPage.jsx';
 import ShipmentListPage from '../pages/shipments/ShipmentListPage.jsx';
 import UpdateShipmentStatusPage from '../pages/shipments/UpdateShipmentStatusPage.jsx';
+import PaymentSummaryPage from '../pages/payments/PaymentSummaryPage.jsx';
 
 function ShipmentRoutes() {
   return (
@@ -41,6 +42,10 @@ function ShipmentRoutes() {
         element={<UpdateShipmentStatusPage />}
       />
 
+      <Route
+        path="/payments/:shipmentId"
+        element={<PaymentSummaryPage />}
+      />
       <Route path="*" element={<Navigate to="/shipments" replace />} />
     </Routes>
   );
